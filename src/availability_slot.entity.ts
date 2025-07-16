@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Doctor } from './doctor.entity';
+import { Doctor } from './doctor/doctor.entity';
 
 @Entity()
 export class AvailabilitySlot {

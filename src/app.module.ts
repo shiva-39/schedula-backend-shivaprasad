@@ -6,11 +6,13 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from './user.entity';
-import { Doctor } from './doctor.entity';
-import { Patient } from './patient.entity';
+import { DoctorController } from './doctor/doctor.controller';
+import { DoctorService } from './doctor/doctor.service';
+import { Doctor } from './doctor/doctor.entity';
+import { PatientController } from './patient/patient.controller';
+import { PatientService } from './patient/patient.service';
+import { Patient } from './patient/patient.entity';
 import { JwtStrategy } from './auth/jwt.strategy';
-import { DoctorController } from './doctor.controller';
-import { DoctorService } from './doctor.service';
 import { AvailabilityController } from './availability.controller';
 import { AvailabilityService } from './availability.service';
 import { AvailabilitySlot } from './availability_slot.entity';
@@ -33,7 +35,7 @@ import { AvailabilitySlot } from './availability_slot.entity';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  controllers: [AppController, AuthController, DoctorController, AvailabilityController],
-  providers: [AppService, AuthService, JwtStrategy, DoctorService, AvailabilityService],
+  controllers: [AppController, AuthController, DoctorController, PatientController, AvailabilityController],
+  providers: [AppService, AuthService, JwtStrategy, DoctorService, PatientService, AvailabilityService],
 })
 export class AppModule {}

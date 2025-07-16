@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Patient } from './patient.entity';
-import { Doctor } from './doctor.entity';
+import { Patient } from './patient/patient.entity';
+import { Doctor } from './doctor/doctor.entity';
 import { AvailabilitySlot } from './availability_slot.entity';
 
 @Entity()

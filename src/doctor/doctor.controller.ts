@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Patch, Body, UseGuards, Req } from '@nestjs/common';
 import { DoctorService } from './doctor.service';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('api/doctors')
 export class DoctorController {
