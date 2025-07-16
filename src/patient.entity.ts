@@ -1,16 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { User } from './user.entity';
 
 @Entity()
 export class Patient {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;
 
   @Column()
-  dateOfBirth: Date;
+  gender: string;
 
-  @Column({ unique: true })
-  email: string;
+  @Column()
+  age: number;
+
+  @Column()
+  phoneNumber: string;
+
+  @ManyToOne(() => User, (user) => user.patients)
+  user: User;
 } 

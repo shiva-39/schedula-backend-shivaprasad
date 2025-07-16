@@ -1,9 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { User } from './user.entity';
 
 @Entity()
 export class Doctor {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;
@@ -11,6 +12,9 @@ export class Doctor {
   @Column()
   specialization: string;
 
-  @Column({ unique: true })
-  email: string;
+  @Column()
+  yearsExperience: number;
+
+  @ManyToOne(() => User, (user) => user.doctors)
+  user: User;
 } 
