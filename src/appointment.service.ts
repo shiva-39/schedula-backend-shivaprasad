@@ -21,9 +21,12 @@ export class AppointmentService {
 
   async createAppointment(data: any, user: any) {
     // TODO: Add logic for wave/stream capacity
-    const patient = await this.patientRepository.findOne({ where: { id: user.sub } });
+    const patient = await this.patientRepository.findOne({ where: { user: { id: user.sub } } });
     const doctor = await this.doctorRepository.findOne({ where: { id: data.doctorId } });
     const slot = await this.slotRepository.findOne({ where: { id: data.slotId } });
+    if (!patient) console.log('Patient not found:', user.sub);
+    if (!doctor) console.log('Doctor not found:', data.doctorId);
+    if (!slot) console.log('Slot not found:', data.slotId);
     if (!patient || !doctor || !slot) throw new NotFoundException('Invalid patient, doctor, or slot');
     const appointment = this.appointmentRepository.create({ patient, doctor, slot, status: 'scheduled' });
     await this.appointmentRepository.save(appointment);
