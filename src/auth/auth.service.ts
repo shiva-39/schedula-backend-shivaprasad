@@ -64,12 +64,40 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    // Extra logging for debugging
     const user = await this.userRepository.findOne({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) {
+      console.log('Login failed: user not found for email', dto.email);
+      throw new UnauthorizedException('Invalid credentials');
+    }
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const access_token = await this.jwtService.signAsync(payload);
+    if (!valid) {
+      console.log('Login failed: invalid password for email', dto.email);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    // Auto-create missing Patient entity for patient users
+    if (user.role === 'patient') {
+      const patient = await this.patientRepository.findOne({ where: { user: { id: user.id } } });
+      if (!patient) {
+        // You may want to fetch more info from user or set defaults
+        const newPatient = this.patientRepository.create({
+          name: user.email.split('@')[0],
+          gender: 'unknown',
+          age: 0,
+          phoneNumber: '',
+          user: user,
+        });
+        await this.patientRepository.save(newPatient);
+        console.log('Auto-created missing Patient entity for user:', user.id);
+      }
+    }
+    // Log user info for debugging
+    console.log('Login success:', { id: user.id, email: user.email, role: user.role });
+    // Use a minimal payload and short expiry for a smaller token
+    const payload = { sub: user.id };
+    const access_token = await this.jwtService.signAsync(payload, { secret: 'shortkey', expiresIn: '1h' });
+    // Log token for debugging
+    console.log('Generated token for', user.email, access_token);
     return { access_token };
   }
 
