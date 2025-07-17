@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Patch, Body, UseGuards, Req } from '@nestjs/common';
-import { DoctorService } from './doctor.service';
+import { DoctorService } from '../doctor/doctor.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('api/doctors')
