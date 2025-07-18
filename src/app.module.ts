@@ -16,6 +16,9 @@ import { JwtStrategy } from './auth/jwt.strategy';
 import { AvailabilityController } from './availability.controller';
 import { AvailabilityService } from './availability.service';
 import { AvailabilitySlot } from './availability_slot.entity';
+import { Appointment } from './appointment.entity';
+import { AppointmentController } from './appointment.controller';
+import { AppointmentService } from './appointment.service';
 
 @Module({
   imports: [
@@ -29,13 +32,13 @@ import { AvailabilitySlot } from './availability_slot.entity';
       autoLoadEntities: true,
       synchronize: false, // Use migrations only
     }),
-    TypeOrmModule.forFeature([User, Doctor, Patient, AvailabilitySlot]),
+    TypeOrmModule.forFeature([User, Doctor, Patient, AvailabilitySlot, Appointment]),
     JwtModule.register({
-      secret: `${process.env.JWT_SECRET || 'supersecretkey'}`,
-      signOptions: { expiresIn: '1d' },
+      secret: 'shortkey',
+      signOptions: { expiresIn: '1h' },
     }),
   ],
-  controllers: [AppController, AuthController, DoctorController, PatientController, AvailabilityController],
-  providers: [AppService, AuthService, JwtStrategy, DoctorService, PatientService, AvailabilityService],
+  controllers: [AppController, AuthController, DoctorController, PatientController, AvailabilityController, AppointmentController],
+  providers: [AppService, AuthService, JwtStrategy, DoctorService, PatientService, AvailabilityService, AppointmentService],
 })
 export class AppModule {}
