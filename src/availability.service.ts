@@ -21,13 +21,27 @@ export class AvailabilityService {
   }
 
   async addSlot(doctorId: string, slotData: any, user: any) {
-    // Only allow doctor to add their own slots
-    const doctor = await this.doctorRepository.findOne({ where: { id: doctorId }, relations: ['user'] });
-    if (!doctor) throw new NotFoundException('Doctor not found');
-    if (!doctor.user || doctor.user.id !== user.sub) throw new ForbiddenException('You can only add slots for your own profile');
-    const slot = this.slotRepository.create({ ...slotData, doctor });
-    await this.slotRepository.save(slot);
-    return slot;
+    try {
+      // Only allow doctor to add their own slots
+      const doctor = await this.doctorRepository.findOne({ where: { id: doctorId }, relations: ['user'] });
+      if (!doctor) throw new NotFoundException('Doctor not found');
+      if (!doctor.user || doctor.user.id !== user.sub) throw new ForbiddenException('You can only add slots for your own profile');
+      // Convert date + time fields to Date objects for DB
+      const { date, startTime, endTime, ...rest } = slotData;
+      const startDateTime = new Date(`${date}T${startTime}`);
+      const endDateTime = new Date(`${date}T${endTime}`);
+      const slot = this.slotRepository.create({
+        ...rest,
+        doctor,
+        startTime: startDateTime,
+        endTime: endDateTime,
+      });
+      await this.slotRepository.save(slot);
+      return slot;
+    } catch (error) {
+      console.error('Error in addSlot:', error);
+      throw error;
+    }
   }
 
   async deleteSlot(doctorId: string, slotId: string, user: any) {
@@ -48,4 +62,4 @@ export class AvailabilityService {
     await this.slotRepository.remove(slot);
     return { message: 'Slot deleted' };
   }
-} 
+}

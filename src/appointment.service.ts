@@ -34,9 +34,10 @@ export class AppointmentService {
   }
 
   async rescheduleAppointment(id: string, data: any, user: any) {
-    const appointment = await this.appointmentRepository.findOne({ where: { id }, relations: ['patient'] });
+    const appointment = await this.appointmentRepository.findOne({ where: { id }, relations: ['patient', 'patient.user'] });
     if (!appointment) throw new NotFoundException('Appointment not found');
-    if (appointment.patient.id !== user.sub) throw new ForbiddenException('You can only reschedule your own appointments');
+    if (!appointment.patient || !appointment.patient.user) throw new NotFoundException('Patient or user not found');
+    if (appointment.patient.user.id !== user.sub) throw new ForbiddenException('You can only reschedule your own appointments');
     const newSlot = await this.slotRepository.findOne({ where: { id: data.slotId } });
     if (!newSlot) throw new NotFoundException('Slot not found');
     appointment.slot = newSlot;
@@ -46,22 +47,28 @@ export class AppointmentService {
   }
 
   async cancelAppointment(id: string, user: any) {
-    const appointment = await this.appointmentRepository.findOne({ where: { id }, relations: ['patient'] });
+    const appointment = await this.appointmentRepository.findOne({ where: { id }, relations: ['patient', 'patient.user'] });
     if (!appointment) throw new NotFoundException('Appointment not found');
-    if (appointment.patient.id !== user.sub) throw new ForbiddenException('You can only cancel your own appointments');
+    if (!appointment.patient || !appointment.patient.user) throw new NotFoundException('Patient or user not found');
+    if (appointment.patient.user.id !== user.sub) throw new ForbiddenException('You can only cancel your own appointments');
     appointment.status = 'cancelled';
     await this.appointmentRepository.save(appointment);
     return { message: 'Appointment cancelled' };
   }
 
   async getPatientAppointments(patientId: string, user: any) {
-    if (patientId !== user.sub) throw new ForbiddenException('You can only view your own appointments');
+    const patient = await this.patientRepository.findOne({ where: { id: patientId }, relations: ['user'] });
+    if (!patient) throw new NotFoundException('Patient not found');
+    if (!patient.user) throw new NotFoundException('User not found for patient');
+    if (patient.user.id !== user.sub) throw new ForbiddenException('You can only view your own appointments');
     return this.appointmentRepository.find({ where: { patient: { id: patientId } } });
   }
 
   async getDoctorAppointments(doctorId: string, user: any) {
-    // Only allow doctor to view their own appointments
-    if (doctorId !== user.sub) throw new ForbiddenException('You can only view your own appointments');
+    const doctor = await this.doctorRepository.findOne({ where: { id: doctorId }, relations: ['user'] });
+    if (!doctor) throw new NotFoundException('Doctor not found');
+    if (!doctor.user) throw new NotFoundException('User not found for doctor');
+    if (doctor.user.id !== user.sub) throw new ForbiddenException('You can only view your own appointments');
     return this.appointmentRepository.find({ where: { doctor: { id: doctorId } } });
   }
 } 
