@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, Inject, forwardRef } from '@nestjs/common';
-import { PatientRegisterDto } from './dto/patient-register.dto';
-import { DoctorRegisterDto } from './dto/doctor-register.dto';
-import { LoginDto } from './dto/login.dto';
+import { PatientRegisterDto } from '../auth/dto/patient-register.dto';
+import { DoctorRegisterDto } from '../auth/dto/doctor-register.dto';
+import { LoginDto } from '../auth/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
