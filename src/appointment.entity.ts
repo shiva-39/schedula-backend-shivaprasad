@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, Up
 import { Patient } from './patient/patient.entity';
 import { Doctor } from './doctor/doctor.entity';
 import { AvailabilitySlot } from './availability_slot.entity';
+import { ElasticScheduleEntity } from './elastic-schedule/elastic-schedule.entity';
 
 @Entity()
 export class Appointment {
@@ -14,8 +15,21 @@ export class Appointment {
   @ManyToOne(() => Doctor, (doctor) => doctor.id)
   doctor: Doctor;
 
-  @ManyToOne(() => AvailabilitySlot, (slot) => slot.id)
-  slot: AvailabilitySlot;
+  @ManyToOne(() => AvailabilitySlot, (slot) => slot.id, { nullable: true })
+  slot?: AvailabilitySlot;
+
+  // Elastic scheduling support
+  @ManyToOne(() => ElasticScheduleEntity, { nullable: true })
+  elasticSchedule?: ElasticScheduleEntity;
+
+  @Column({ type: 'date', nullable: true })
+  date?: string;
+
+  @Column({ type: 'time', nullable: true })
+  startTime?: string;
+
+  @Column({ type: 'time', nullable: true })
+  endTime?: string;
 
   @Column()
   status: string; // scheduled, rescheduled, cancelled

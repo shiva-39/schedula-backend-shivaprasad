@@ -32,7 +32,7 @@ import { AppointmentService } from './appointment.service';
       autoLoadEntities: true,
       synchronize: false, // Use migrations only
     }),
-    TypeOrmModule.forFeature([User, Doctor, Patient, AvailabilitySlot, Appointment]),
+    TypeOrmModule.forFeature([User, Doctor, Patient, AvailabilitySlot, Appointment, require('./elastic-schedule/elastic-schedule.entity').ElasticScheduleEntity]),
     JwtModule.register({
       secret: 'shortkey',
       signOptions: { expiresIn: '1h' },
