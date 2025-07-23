@@ -36,5 +36,4 @@ export class InitSchema1752856286639 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "patient"`);
         await queryRunner.query(`DROP TABLE "doctor"`);
     }
-
 }
