@@ -1,3 +1,5 @@
+import { ElasticScheduleController } from './elastic-schedule/elastic-schedule.controller';
+import { ElasticScheduleService } from './elastic-schedule/elastic-schedule.service';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -38,7 +40,7 @@ import { AppointmentService } from './appointment.service';
       signOptions: { expiresIn: '1h' },
     }),
   ],
-  controllers: [AppController, AuthController, DoctorController, PatientController, AvailabilityController, AppointmentController],
-  providers: [AppService, AuthService, JwtStrategy, DoctorService, PatientService, AvailabilityService, AppointmentService],
+  controllers: [AppController, AuthController, DoctorController, PatientController, AvailabilityController, AppointmentController, ElasticScheduleController],
+  providers: [AppService, AuthService, JwtStrategy, DoctorService, PatientService, AvailabilityService, AppointmentService, ElasticScheduleService],
 })
 export class AppModule {}

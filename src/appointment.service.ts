@@ -59,16 +59,15 @@ export class AppointmentService {
           current += slotDuration + buffer;
         }
         if (!assignedSlot) throw new ConflictException('No available slot in elastic schedule');
-        // Create appointment
-        const appointment = manager.create(Appointment, {
-          patient,
-          doctor,
-          status: 'scheduled',
-          startTime: assignedSlot.startTime,
-          endTime: assignedSlot.endTime,
-          elasticSchedule,
-          date: elasticSchedule.date,
-        });
+        // Create appointment using best practice
+        const appointment = new Appointment();
+        appointment.patient = patient;
+        appointment.doctor = doctor;
+        appointment.elasticSchedule = elasticSchedule;
+        appointment.status = 'scheduled';
+        appointment.startTime = assignedSlot.startTime;
+        appointment.endTime = assignedSlot.endTime;
+        appointment.date = elasticSchedule.date;
         await manager.save(Appointment, appointment);
         return appointment;
       });
@@ -81,7 +80,15 @@ export class AppointmentService {
       if (!doctor) console.log('Doctor not found:', data.doctorId);
       if (!slot) console.log('Slot not found:', data.slotId);
       if (!patient || !doctor || !slot) throw new NotFoundException('Invalid patient, doctor, or slot');
-      const appointment = this.appointmentRepository.create({ patient, doctor, slot, status: 'scheduled' });
+      // Set date, startTime, endTime from slot, assign full entities using best practice
+      const appointment = new Appointment();
+      appointment.patient = patient;
+      appointment.doctor = doctor;
+      appointment.slot = slot;
+      appointment.status = 'scheduled';
+      appointment.date = slot.startTime ? new Date(slot.startTime).toISOString().slice(0, 10) : "";
+      appointment.startTime = slot.startTime ? new Date(slot.startTime).toISOString().slice(11, 19) : "";
+      appointment.endTime = slot.endTime ? new Date(slot.endTime).toISOString().slice(11, 19) : "";
       await this.appointmentRepository.save(appointment);
       return appointment;
     }

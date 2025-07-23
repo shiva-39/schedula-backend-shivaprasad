@@ -163,8 +163,8 @@ export class AuthService {
     }
     // Log user info for debugging
     console.log('Login success:', { id: user.id, email: user.email, role: user.role });
-    // Use a minimal payload and short expiry for a smaller token
-    const payload = { sub: user.id };
+    // Include role and email in payload for guards
+    const payload = { sub: user.id, email: user.email, role: user.role };
     const access_token = await this.jwtService.signAsync(payload, { secret: 'shortkey', expiresIn: '1h' });
     // Log token for debugging
     console.log('Generated token for', user.email, access_token);

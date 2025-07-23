@@ -1,12 +1,13 @@
-import { Controller, Post, Get, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { UpdateElasticScheduleDto } from './dto/update-elastic-schedule.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RoleGuard } from '../auth/role.guard';
+import { RoleGuard, Roles } from '../auth/role.guard';
 import { ElasticScheduleService } from './elastic-schedule.service';
 import { CreateElasticScheduleDto } from './dto/create-elastic-schedule.dto';
 
 @Controller('api/doctors/:id')
-@UseGuards(JwtAuthGuard)
-@UseGuards(new RoleGuard('doctor'))
+@UseGuards(JwtAuthGuard, RoleGuard)
+@Roles('doctor')
 export class ElasticScheduleController {
   constructor(private readonly elasticScheduleService: ElasticScheduleService) {}
 
@@ -24,5 +25,14 @@ export class ElasticScheduleController {
     @Query('date') date: string
   ) {
     return this.elasticScheduleService.getAvailableSlots(doctorId, date);
+  }
+
+  @Patch('elastic-schedule/:scheduleId')
+  async updateElasticSchedule(
+    @Param('id') doctorId: string,
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: UpdateElasticScheduleDto
+  ) {
+    return this.elasticScheduleService.updateSchedule(doctorId, scheduleId, dto);
   }
 }
