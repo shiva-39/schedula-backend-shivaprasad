@@ -22,6 +22,8 @@ export class InitSchema1752856286639 implements MigrationInterface {
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "appointment" DROP CONSTRAINT "FK_elasticSchedule_appointment"`);
+        await queryRunner.query(`ALTER TABLE "elastic_schedule_entity" DROP CONSTRAINT "FK_elastic_schedule_doctor"`);
+        await queryRunner.query(`DROP TABLE "elastic_schedule_entity"`);
         await queryRunner.query(`ALTER TABLE "appointment" DROP CONSTRAINT "FK_b463fce395ead7791607a5c33eb"`);
         await queryRunner.query(`ALTER TABLE "appointment" DROP CONSTRAINT "FK_514bcc3fb1b8140f85bf1cde6e2"`);
         await queryRunner.query(`ALTER TABLE "appointment" DROP CONSTRAINT "FK_5ce4c3130796367c93cd817948e"`);
