@@ -131,7 +131,10 @@ export class ElasticScheduleService {
   }
 
   async getAvailableSlots(doctorId: string, date: string) {
-    const schedule = await this.elasticScheduleRepo.findOne({ where: { doctor: { id: doctorId }, date } });
+    const schedule = await this.elasticScheduleRepo.findOne({
+      where: { doctor: { id: doctorId }, date },
+      order: { updatedAt: 'DESC' }
+    });
     if (!schedule) return [];
     const appointments = await this.appointmentRepo.find({ where: { doctor: { id: doctorId }, date } });
     const bookedSlots = new Set<string>();
