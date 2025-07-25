@@ -138,10 +138,16 @@ export class RecurringScheduleService {
     if (deleteFutureSchedules) {
       // Delete all future generated schedules from this template
       const today = getCurrentDate();
-      await this.elasticScheduleRepo.delete({
-        doctor: { id: doctorId },
-        date: schedule.lastGeneratedDate || today, // Delete from last generation or today
-      });
+      const deleteFromDate = schedule.lastGeneratedDate || today;
+      
+      await this.elasticScheduleRepo
+        .createQueryBuilder()
+        .delete()
+        .from(ElasticScheduleEntity)
+        .where('doctorId = :doctorId', { doctorId })
+        .andWhere('recurringTemplateId = :templateId', { templateId: recurringId })
+        .andWhere('date >= :fromDate', { fromDate: deleteFromDate })
+        .execute();
     }
 
     await this.recurringScheduleRepo.remove(schedule);
@@ -269,11 +275,15 @@ export class RecurringScheduleService {
     const today = getCurrentDate();
 
     // Delete future schedules that were generated from this template
-    await this.elasticScheduleRepo.delete({
-      doctor: { id: template.doctor.id },
-      recurringTemplateId: template.id,
-      date: `>= ${today}` as any, // Delete future schedules from this template
-    });
+    await this.elasticScheduleRepo
+      .createQueryBuilder()
+      .delete()
+      .from(ElasticScheduleEntity)
+      .where('doctorId = :doctorId', { doctorId: template.doctor.id })
+      .andWhere('recurringTemplateId = :templateId', { templateId: template.id })
+      .andWhere('date >= :today', { today })
+      .execute();
+      
     return this.generateSchedulesFromTemplate(recurringId, {
       startDate: today,
       overrideExisting: true,

@@ -27,6 +27,15 @@ export class ElasticScheduleEntity {
   @Column({ type: 'int', nullable: true })
   maxAppointments?: number;
 
+  @Column({ type: 'varchar', nullable: true })
+  recurringTemplateId?: string;
+
+  @Column({ type: 'boolean', default: false })
+  isOverride: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  overrideReason?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
