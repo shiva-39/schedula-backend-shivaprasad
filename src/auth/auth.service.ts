@@ -12,6 +12,76 @@ import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
+  // Track doctors using elastic scheduling and their slot fill rate
+  async getElasticDoctorsWithFillRate(): Promise<Array<{ doctorId: string; doctorName: string; totalSlots: number; filledSlots: number; fillRate: number }>> {
+    // Find all doctors with at least one elastic schedule
+    const doctors = await this.doctorRepository.find();
+    const elasticSchedulesRepo = (this as any).elasticScheduleRepo || null;
+    if (!elasticSchedulesRepo) throw new Error('ElasticSchedule repository not injected');
+    const result: Array<{ doctorId: string; doctorName: string; totalSlots: number; filledSlots: number; fillRate: number }> = [];
+    for (const doctor of doctors) {
+      // Find elastic schedules for this doctor
+      const schedules = await elasticSchedulesRepo.find({ where: { doctor: { id: doctor.id } } });
+      if (schedules.length === 0) continue;
+      let totalSlots = 0;
+      let filledSlots = 0;
+      for (const schedule of schedules) {
+        // Calculate total possible slots for this schedule
+        const slotDuration = schedule.slotDuration;
+        const buffer = schedule.bufferTime || 0;
+        const start = schedule.startTime;
+        const end = schedule.endTime;
+        const toMinutes = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        let current = toMinutes(start);
+        const endMin = toMinutes(end);
+        while (current + slotDuration <= endMin) {
+          totalSlots++;
+          current += slotDuration + buffer;
+        }
+        // Count filled slots (appointments)
+        const appointments = await (this as any).appointmentRepository.find({ where: { doctor: { id: doctor.id }, date: schedule.date, elasticSchedule: { id: schedule.id } } });
+        filledSlots += appointments.length;
+      }
+      result.push({ doctorId: doctor.id, doctorName: doctor.name, totalSlots, filledSlots, fillRate: totalSlots ? filledSlots / totalSlots : 0 });
+    }
+    return result;
+  }
+
+  // Recommend optimal durations/windows based on fill rate
+  async recommendElasticSlotSettings(doctorId: string): Promise<{ recommendedSlotDuration?: number; recommendedWindow?: string; fillRate?: number; message?: string }> {
+    const elasticSchedulesRepo = (this as any).elasticScheduleRepo || null;
+    if (!elasticSchedulesRepo) throw new Error('ElasticSchedule repository not injected');
+    const schedules = await elasticSchedulesRepo.find({ where: { doctor: { id: doctorId } } });
+    if (schedules.length === 0) return { message: 'No elastic schedules found for doctor' };
+    let bestFillRate = 0;
+    let bestSchedule: typeof schedules[0] | null = null;
+    for (const schedule of schedules) {
+      const slotDuration = schedule.slotDuration;
+      const buffer = schedule.bufferTime || 0;
+      const start = schedule.startTime;
+      const end = schedule.endTime;
+      const toMinutes = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      let current = toMinutes(start);
+      const endMin = toMinutes(end);
+      let totalSlots = 0;
+      while (current + slotDuration <= endMin) {
+        totalSlots++;
+        current += slotDuration + buffer;
+      }
+      const appointments = await (this as any).appointmentRepository.find({ where: { doctor: { id: doctorId }, date: schedule.date, elasticSchedule: { id: schedule.id } } });
+      const fillRate = totalSlots ? appointments.length / totalSlots : 0;
+      if (fillRate > bestFillRate) {
+        bestFillRate = fillRate;
+        bestSchedule = schedule;
+      }
+    }
+    if (!bestSchedule) return { message: 'No filled slots found for doctor' };
+    return {
+      recommendedSlotDuration: bestSchedule.slotDuration,
+      recommendedWindow: `${bestSchedule.startTime}-${bestSchedule.endTime}`,
+      fillRate: bestFillRate,
+    };
+  }
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
