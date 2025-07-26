@@ -3,21 +3,27 @@
 ### This file contains ALL endpoints in logical order with realistic scenarios
 
 @baseUrl = http://localhost:3000
-@doctorToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzOTQzMzAxMC0wMGUyLTRmZjktYjQ0MS1mNGViZTk5ODM3YzYiLCJlbWFpbCI6ImRyLmpvbmVzQGhvc3BpdGFsLmNvbSIsInJvbGUiOiJkb2N0b3IiLCJpYXQiOjE3NTM0NjEzNTcsImV4cCI6MTc1MzQ2NDk1N30.01gEXxd9GTORoMCVzh6pP3Jp9M7AKHSNzAOxMhNrsEc
-@patientToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZGFmYjIzNi1iMzEwLTQzN2MtYmE0Ni1mODUyZTI0ZGQwMTYiLCJlbWFpbCI6ImFsaWNlLmpvaG5zb25AZW1haWwuY29tIiwicm9sZSI6InBhdGllbnQiLCJpYXQiOjE3NTM0NjE0MDMsImV4cCI6MTc1MzQ2NTAwM30.XNrpOEkj3OQ9h1v30uUabnLBv2PjUKYlgVmiM8olpos
-@doctor2Token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiOTMxYzI0MS01ZjZhLTQyZjEtYjk0Ny05NmM5ZWY0YTRjYzEiLCJlbWFpbCI6ImRyLmNoZW5AaG9zcGl0YWwuY29tIiwicm9sZSI6ImRvY3RvciIsImlhdCI6MTc1MzQ2MTM4MiwiZXhwIjoxNzUzNDY0OTgyfQ.Z0wyVmB_R6pn2E_dMWxnnGObuhQ74DTFyziEPqyxyUE
-@patient2Token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzZGJhODE1NS0zMmQ2LTQ4NTAtYjE4OS1kMThhMjUxN2RjYmMiLCJlbWFpbCI6ImJvYi5zbWl0aEBlbWFpbC5jb20iLCJyb2xlIjoicGF0aWVudCIsImlhdCI6MTc1MzQ2MTQzMiwiZXhwIjoxNzUzNDY1MDMyfQ.HWoJ-G6YEDSRmtq8lg4_VqllSnYKJoTUtyRsNOeXkU0
-@doctorId = 452a4d4d-4951-4559-906c-dc333876f21a
-@doctor2Id = ed51bb92-b10e-4177-881b-d3e6133ae13e
-@patientId = e591cab7-ff55-45b2-943b-af91174b4d64
-@patient2Id = e32eccb9-e406-4129-a571-18c76dbd60fe
-@recurringTemplateId = 1699cb51-f183-4cc3-bf4a-65e9ce269648
-@recurringTemplate2Id = 
-@elasticScheduleId = c54383d3-88c3-46de-aba6-d825a5b68d72
-@elasticSchedule2Id = 4c2399f4-fa3e-4d89-8c0b-f267cca11111
-@appointmentId = 70b85549-3ab3-4ff5-bd5e-884a408d1382
-@appointment2Id = d6c8db8a-0de5-4453-845b-fe03325c0221
-@slotId = d892453f-0b0e-44c3-8ec4-1cc386313e1e
+# Tokens will be automatically extracted from login responses below
+@doctorToken = {{loginDoctor.response.body.access_token}}
+@patientToken = {{loginPatient.response.body.access_token}}
+@doctor2Token = {{loginDoctor2.response.body.access_token}}
+@patient2Token = {{loginPatient2.response.body.access_token}}
+# User IDs will be automatically extracted from registration responses
+@doctorId = {{registerDoctor.response.body.id}}
+@doctor2Id = {{registerDoctor2.response.body.id}}
+@patientId = {{registerPatient.response.body.id}}
+@patient2Id = {{registerPatient2.response.body.id}}
+# Alternative: Extract from login responses if registration didn't work
+@doctorId = {{loginDoctor.response.body.entityId}}
+@patientId = {{loginPatient.response.body.entityId}}
+# Resource IDs will be automatically extracted from creation responses
+@recurringTemplateId = {{createRecurringTemplate.response.body.id}}
+@recurringTemplate2Id = {{createRecurringTemplate2.response.body.id}}
+@elasticScheduleId = {{createElasticSchedule.response.body.id}}
+@elasticSchedule2Id = {{createElasticSchedule2.response.body.id}}
+@appointmentId = {{createAppointment.response.body.id}}
+@appointment2Id = {{createAppointment2.response.body.id}}
+@slotId = {{createSlot.response.body.id}}
 
 ### ===============================================
 ### SECTION 1: SYSTEM HEALTH & BASICS
@@ -32,11 +38,12 @@ Content-Type: application/json
 ### ===============================================
 
 ### 2. Register Dr. Sarah Jones (Neurologist)
+# @name registerDoctor
 POST {{baseUrl}}/api/auth/doctor/register
 Content-Type: application/json
 
 {
-  "email": "dr.jones@hospital.com",
+  "email": "dr.jones.fresh@hospital.com",
   "password": "SecurePass123",
   "name": "Dr. Sarah Jones",
   "specialization": "Neurology",
@@ -44,11 +51,12 @@ Content-Type: application/json
 }
 
 ### 3. Register Dr. Michael Chen (Cardiologist)
+# @name registerDoctor2
 POST {{baseUrl}}/api/auth/doctor/register
 Content-Type: application/json
 
 {
-  "email": "dr.chen@hospital.com",
+  "email": "dr.chen.fresh@hospital.com",
   "password": "SecurePass456",
   "name": "Dr. Michael Chen",
   "specialization": "Cardiology",
@@ -56,11 +64,12 @@ Content-Type: application/json
 }
 
 ### 4. Register Patient Alice Johnson
+# @name registerPatient
 POST {{baseUrl}}/api/auth/patient/register
 Content-Type: application/json
 
 {
-  "email": "alice.johnson@email.com",
+  "email": "alice.johnson.fresh@email.com",
   "password": "PatientPass123",
   "name": "Alice Johnson",
   "age": 35,
@@ -69,11 +78,12 @@ Content-Type: application/json
 }
 
 ### 5. Register Patient Bob Smith
+# @name registerPatient2
 POST {{baseUrl}}/api/auth/patient/register
 Content-Type: application/json
 
 {
-  "email": "bob.smith@email.com",
+  "email": "bob.smith.fresh@email.com",
   "password": "PatientPass456",
   "name": "Bob Smith",
   "age": 42,
@@ -82,38 +92,42 @@ Content-Type: application/json
 }
 
 ### 6. Login Dr. Jones
+# @name loginDoctor
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "dr.jones@hospital.com",
+  "email": "dr.jones.fresh@hospital.com",
   "password": "SecurePass123"
 }
 
 ### 7. Login Dr. Chen
+# @name loginDoctor2
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "dr.chen@hospital.com",
+  "email": "dr.chen.fresh@hospital.com",
   "password": "SecurePass456"
 }
 
 ### 8. Login Patient Alice
+# @name loginPatient
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "alice.johnson@email.com",
+  "email": "alice.johnson.fresh@email.com",
   "password": "PatientPass123"
 }
 
 ### 9. Login Patient Bob
+# @name loginPatient2
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "bob.smith@email.com",
+  "email": "bob.smith.fresh@email.com",
   "password": "PatientPass456"
 }
 
@@ -166,13 +180,14 @@ Content-Type: application/json
 ### ===============================================
 
 ### 17. Add Traditional Availability Slot
+# @name createSlot
 POST {{baseUrl}}/api/doctors/{{doctorId}}/slots
 Authorization: Bearer {{doctorToken}}
 Content-Type: application/json
 
 {
-  "startTime": "2025-07-30T09:00:00",
-  "endTime": "2025-07-30T09:30:00",
+  "startTime": "2025-07-30T08:00:00",
+  "endTime": "2025-07-30T08:30:00",
   "isAvailable": true
 }
 
@@ -189,6 +204,7 @@ Authorization: Bearer {{doctorToken}}
 ### ===============================================
 
 ### 20. Create Recurring Template - Morning Clinic (Mon-Fri)
+# @name createRecurringTemplate
 POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
 Authorization: Bearer {{doctorToken}}
 Content-Type: application/json
@@ -207,6 +223,7 @@ Content-Type: application/json
 }
 
 ### 21. Create Recurring Template - Evening Consultation
+# @name createRecurringTemplate2
 POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
 Authorization: Bearer {{doctorToken}}
 Content-Type: application/json
@@ -285,6 +302,7 @@ Content-Type: application/json
 ### ===============================================
 
 ### 29. Create Custom Elastic Schedule
+# @name createElasticSchedule
 POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
 Authorization: Bearer {{doctorToken}}
 Content-Type: application/json
@@ -300,6 +318,7 @@ Content-Type: application/json
 }
 
 ### 30. Create Emergency Schedule
+# @name createElasticSchedule2
 POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
 Authorization: Bearer {{doctorToken}}
 Content-Type: application/json
@@ -366,6 +385,7 @@ Authorization: Bearer {{doctorToken}}
 ### ===============================================
 
 ### 37. Book First Appointment (Elastic Schedule)
+# @name createAppointment
 POST {{baseUrl}}/api/appointments
 Authorization: Bearer {{patientToken}}
 Content-Type: application/json
@@ -377,6 +397,7 @@ Content-Type: application/json
 }
 
 ### 38. Book Second Appointment (Same Elastic Schedule)
+# @name createAppointment2
 POST {{baseUrl}}/api/appointments
 Authorization: Bearer {{patientToken}}
 Content-Type: application/json
@@ -450,7 +471,7 @@ Authorization: Bearer {{patientToken}}
 Content-Type: application/json
 
 {
-  "slotId": "new-slot-id-from-availability"
+  "slotId": "{{slotId}}"
 }
 
 ### ===============================================

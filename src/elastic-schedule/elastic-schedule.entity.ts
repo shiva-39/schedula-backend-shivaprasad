@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Doctor } from '../doctor/doctor.entity';
 
-@Entity('elastic_schedule')
+@Entity('elastic_schedule_entity')
 export class ElasticScheduleEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -25,11 +25,11 @@ export class Appointment {
   @Column({ type: 'date', nullable: true })
   date?: string;
 
-  @Column({ type: 'time', nullable: true })
-  startTime?: string;
+  @Column({ type: 'timestamp', nullable: true })
+  startTime?: Date;
 
-  @Column({ type: 'time', nullable: true })
-  endTime?: string;
+  @Column({ type: 'timestamp', nullable: true })
+  endTime?: Date;
 
   @Column()
   status: string; // scheduled, rescheduled, cancelled

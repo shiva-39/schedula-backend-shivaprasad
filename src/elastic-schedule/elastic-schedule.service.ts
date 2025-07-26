@@ -1,9 +1,16 @@
-import { Injectable } from '@nestjs/common';
+﻿import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ElasticScheduleEntity } from './elastic-schedule.entity';
 import { Doctor } from '../doctor/doctor.entity';
+import { Appointment } from '../appointment.entity';
 import { CreateElasticScheduleDto } from './dto/create-elastic-schedule.dto';
+import { UpdateElasticScheduleDto } from './dto/update-elastic-schedule.dto';
 
 @Injectable()
 export class ElasticScheduleService {
@@ -11,73 +18,120 @@ export class ElasticScheduleService {
     @InjectRepository(ElasticScheduleEntity)
     private readonly elasticScheduleRepo: Repository<ElasticScheduleEntity>,
     @InjectRepository(Doctor)
-    private readonly doctorRepo: Repository<Doctor>
+    private readonly doctorRepo: Repository<Doctor>,
+    @InjectRepository(Appointment)
+    private readonly appointmentRepo: Repository<Appointment>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createSchedule(doctorId: string, dto: CreateElasticScheduleDto, user: any) {
-    // Optionally check user is doctor and matches doctorId
-    const doctor = await this.doctorRepo.findOne({ where: { id: doctorId } });
-    if (!doctor) throw new Error('Doctor not found');
-    const schedule = this.elasticScheduleRepo.create({
-      doctor,
+    const doctor = await this.doctorRepo.findOne({
+      where: { id: doctorId },
+      relations: ['user'],
+    });
+
+    if (!doctor) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    if (doctor.user?.id !== user.sub) {
+      throw new BadRequestException('You can only create schedules for yourself');
+    }
+
+    const elasticSchedule = this.elasticScheduleRepo.create({
+      doctor: { id: doctorId },
       date: dto.date,
       startTime: dto.startTime,
       endTime: dto.endTime,
       slotDuration: dto.slotDuration,
-      bufferTime: dto.bufferTime,
+      bufferTime: dto.bufferTime || 0,
       maxAppointments: dto.maxAppointments,
     });
-    return this.elasticScheduleRepo.save(schedule);
+
+    return await this.elasticScheduleRepo.save(elasticSchedule);
   }
 
-  async getElasticSlots(doctorId: string, date: string): Promise<{ startTime: string; endTime: string }[]> {
-    // Find schedule for doctor and date
-    const schedule = await this.elasticScheduleRepo.findOne({ where: { doctor: { id: doctorId }, date } });
-    if (!schedule) return [];
+  async getSchedulesByDoctor(doctorId: string) {
+    return await this.elasticScheduleRepo.find({
+      where: { doctor: { id: doctorId } },
+      order: { date: 'ASC', startTime: 'ASC' },
+    });
+  }
 
-    // Get all appointments for the doctor on that day
-    // Assuming you have an Appointment entity and repository
-    // You may need to inject Appointment repository in the constructor
-    // For now, use dynamic import
-    const { Appointment } = await import('../appointment.entity');
-    const { getRepository } = await import('typeorm');
-    const appointmentRepo = getRepository(Appointment);
-    const appointments = await appointmentRepo.find({ where: { doctor: { id: doctorId }, date } });
+  async getScheduleById(doctorId: string, scheduleId: string) {
+    const schedule = await this.elasticScheduleRepo.findOne({
+      where: {
+        id: scheduleId,
+        doctor: { id: doctorId },
+      },
+    });
 
-    // Build a set of booked time ranges
-    const bookedSlots = new Set<string>();
-    for (const appt of appointments) {
-      bookedSlots.add(`${appt.startTime}-${appt.endTime}`);
+    if (!schedule) {
+      throw new NotFoundException('Elastic schedule not found');
     }
 
-    // Calculate available slots
-    const slots: { startTime: string; endTime: string }[] = [];
-    const start = schedule.startTime;
-    const end = schedule.endTime;
-    const slotDuration = schedule.slotDuration;
-    const buffer = schedule.bufferTime || 0;
+    return schedule;
+  }
 
-    // Convert time strings to minutes
-    const toMinutes = (t: string) => {
-      const [h, m] = t.split(':').map(Number);
-      return h * 60 + m;
-    };
-    const fromMinutes = (m: number) => {
-      const h = Math.floor(m / 60).toString().padStart(2, '0');
-      const min = (m % 60).toString().padStart(2, '0');
-      return `${h}:${min}`;
-    };
-    let current = toMinutes(start);
-    const endMin = toMinutes(end);
-    while (current + slotDuration <= endMin) {
-      const slotStart = fromMinutes(current);
-      const slotEnd = fromMinutes(current + slotDuration);
-      // Check if slot is booked
-      if (!bookedSlots.has(`${slotStart}-${slotEnd}`)) {
-        slots.push({ startTime: slotStart, endTime: slotEnd });
-      }
-      current += slotDuration + buffer;
+  async updateSchedule(doctorId: string, scheduleId: string, dto: UpdateElasticScheduleDto, user: any) {
+    const schedule = await this.elasticScheduleRepo.findOne({
+      where: {
+        id: scheduleId,
+        doctor: { id: doctorId },
+      },
+      relations: ['doctor', 'doctor.user'],
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Elastic schedule not found');
     }
-    return slots;
+
+    if (schedule.doctor.user?.id !== user.sub) {
+      throw new BadRequestException('You can only update your own schedules');
+    }
+
+    Object.assign(schedule, dto);
+    return await this.elasticScheduleRepo.save(schedule);
+  }
+
+  async deleteSchedule(doctorId: string, scheduleId: string, user: any) {
+    const schedule = await this.elasticScheduleRepo.findOne({
+      where: {
+        id: scheduleId,
+        doctor: { id: doctorId },
+      },
+      relations: ['doctor', 'doctor.user'],
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Elastic schedule not found');
+    }
+
+    if (schedule.doctor.user?.id !== user.sub) {
+      throw new BadRequestException('You can only delete your own schedules');
+    }
+
+    await this.elasticScheduleRepo.remove(schedule);
+    return { message: 'Elastic schedule deleted successfully' };
+  }
+
+  async getElasticSlots(doctorId: string, date: string) {
+    const schedules = await this.elasticScheduleRepo.find({
+      where: {
+        doctor: { id: doctorId },
+        date: date,
+      },
+    });
+
+    return {
+      date,
+      schedules: schedules.map(schedule => ({
+        id: schedule.id,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        slotDuration: schedule.slotDuration,
+        maxAppointments: schedule.maxAppointments,
+      })),
+    };
   }
 }

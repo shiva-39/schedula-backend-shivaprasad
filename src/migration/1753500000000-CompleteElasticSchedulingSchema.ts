@@ -93,7 +93,7 @@ export class CompleteElasticSchedulingSchema1753500000000 implements MigrationIn
 
     // Create elastic schedule instances with override capabilities
     await queryRunner.query(
-      `CREATE TABLE "elastic_schedule_entity" (
+      `CREATE TABLE "elastic_schedule" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(), 
         "doctorId" uuid, 
         "date" date NOT NULL, 
@@ -107,7 +107,7 @@ export class CompleteElasticSchedulingSchema1753500000000 implements MigrationIn
         "overrideReason" character varying, 
         "createdAt" TIMESTAMP NOT NULL DEFAULT now(), 
         "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), 
-        CONSTRAINT "PK_elastic_schedule_entity_id" PRIMARY KEY ("id")
+        CONSTRAINT "PK_elastic_schedule_id" PRIMARY KEY ("id")
       )`,
     );
 
@@ -156,7 +156,7 @@ export class CompleteElasticSchedulingSchema1753500000000 implements MigrationIn
       `ALTER TABLE "recurring_schedule_entity" ADD CONSTRAINT "FK_recurring_schedule_doctor" FOREIGN KEY ("doctorId") REFERENCES "doctor"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "elastic_schedule_entity" ADD CONSTRAINT "FK_elastic_schedule_doctor" FOREIGN KEY ("doctorId") REFERENCES "doctor"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "elastic_schedule" ADD CONSTRAINT "FK_elastic_schedule_doctor" FOREIGN KEY ("doctorId") REFERENCES "doctor"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
 
     // Appointment relationships
@@ -170,7 +170,7 @@ export class CompleteElasticSchedulingSchema1753500000000 implements MigrationIn
       `ALTER TABLE "appointment" ADD CONSTRAINT "FK_b463fce395ead7791607a5c33eb" FOREIGN KEY ("slotId") REFERENCES "availability_slot"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "appointment" ADD CONSTRAINT "FK_elasticSchedule_appointment" FOREIGN KEY ("elasticScheduleId") REFERENCES "elastic_schedule_entity"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+      `ALTER TABLE "appointment" ADD CONSTRAINT "FK_elasticSchedule_appointment" FOREIGN KEY ("elasticScheduleId") REFERENCES "elastic_schedule"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
     );
 
     // ===============================================
@@ -184,10 +184,10 @@ export class CompleteElasticSchedulingSchema1753500000000 implements MigrationIn
 
     // Elastic schedule performance indexes
     await queryRunner.query(
-      `CREATE INDEX "IDX_elastic_schedule_doctor_date" ON "elastic_schedule_entity" ("doctorId", "date")`,
+      `CREATE INDEX "IDX_elastic_schedule_doctor_date" ON "elastic_schedule" ("doctorId", "date")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_elastic_schedule_date_range" ON "elastic_schedule_entity" ("date", "startTime", "endTime")`,
+      `CREATE INDEX "IDX_elastic_schedule_date_range" ON "elastic_schedule" ("date", "startTime", "endTime")`,
     );
 
     // Appointment booking optimization
@@ -235,7 +235,7 @@ export class CompleteElasticSchedulingSchema1753500000000 implements MigrationIn
       `ALTER TABLE "appointment" DROP CONSTRAINT "FK_5ce4c3130796367c93cd817948e"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "elastic_schedule_entity" DROP CONSTRAINT "FK_elastic_schedule_doctor"`,
+      `ALTER TABLE "elastic_schedule" DROP CONSTRAINT "FK_elastic_schedule_doctor"`,
     );
     await queryRunner.query(
       `ALTER TABLE "recurring_schedule_entity" DROP CONSTRAINT "FK_recurring_schedule_doctor"`,
@@ -254,7 +254,7 @@ export class CompleteElasticSchedulingSchema1753500000000 implements MigrationIn
     // DROP TABLES
     // ===============================================
     await queryRunner.query(`DROP TABLE "appointment"`);
-    await queryRunner.query(`DROP TABLE "elastic_schedule_entity"`);
+    await queryRunner.query(`DROP TABLE "elastic_schedule"`);
     await queryRunner.query(`DROP TABLE "recurring_schedule_entity"`);
     await queryRunner.query(`DROP TABLE "availability_slot"`);
     await queryRunner.query(`DROP TABLE "patient"`);

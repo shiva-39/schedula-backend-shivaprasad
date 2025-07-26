@@ -40,7 +40,11 @@ export class AuthService {
       user: user,
     });
     await this.patientRepository.save(patient);
-    return { message: 'Patient registered successfully' };
+    return { 
+      message: 'Patient registered successfully',
+      id: patient.id,
+      userId: user.id 
+    };
   }
 
   async registerDoctor(dto: DoctorRegisterDto) {
@@ -60,7 +64,11 @@ export class AuthService {
       user: user,
     });
     await this.doctorRepository.save(doctor);
-    return { message: 'Doctor registered successfully' };
+    return { 
+      message: 'Doctor registered successfully',
+      id: doctor.id,
+      userId: user.id 
+    };
   }
 
   async login(dto: LoginDto) {
@@ -75,11 +83,14 @@ export class AuthService {
       console.log('Login failed: invalid password for email', dto.email);
       throw new UnauthorizedException('Invalid credentials');
     }
-    // Auto-create missing Patient entity for patient users
+
+    let entityId: string | null = null;
+    
+    // Get the Doctor/Patient ID based on role
     if (user.role === 'patient') {
       const patient = await this.patientRepository.findOne({ where: { user: { id: user.id } } });
       if (!patient) {
-        // You may want to fetch more info from user or set defaults
+        // Auto-create missing Patient entity for patient users
         const newPatient = this.patientRepository.create({
           name: user.email.split('@')[0],
           gender: 'unknown',
@@ -88,17 +99,31 @@ export class AuthService {
           user: user,
         });
         await this.patientRepository.save(newPatient);
+        entityId = newPatient.id;
         console.log('Auto-created missing Patient entity for user:', user.id);
+      } else {
+        entityId = patient.id;
+      }
+    } else if (user.role === 'doctor') {
+      const doctor = await this.doctorRepository.findOne({ where: { user: { id: user.id } } });
+      if (doctor) {
+        entityId = doctor.id;
       }
     }
+
     // Log user info for debugging
-    console.log('Login success:', { id: user.id, email: user.email, role: user.role });
+    console.log('Login success:', { id: user.id, email: user.email, role: user.role, entityId });
     // Use a minimal payload and short expiry for a smaller token
-    const payload = { sub: user.id };
+    const payload = { sub: user.id, email: user.email, role: user.role };
     const access_token = await this.jwtService.signAsync(payload, { secret: 'shortkey', expiresIn: '1h' });
     // Log token for debugging
     console.log('Generated token for', user.email, access_token);
-    return { access_token };
+    return { 
+      access_token,
+      userId: user.id,
+      entityId: entityId,
+      role: user.role
+    };
   }
 
   async logout(_req: any) {

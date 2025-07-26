@@ -46,7 +46,12 @@ export class AppointmentService {
         const appointments = await manager.find(Appointment, { where: { doctor: { id: doctor.id }, date: elasticSchedule.date } });
         const bookedSlots = new Set<string>();
         for (const appt of appointments) {
-          bookedSlots.add(`${appt.startTime}-${appt.endTime}`);
+          // Extract time from timestamp for comparison
+          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          if (startTimeStr && endTimeStr) {
+            bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
+          }
         }
         let assignedSlot: { startTime: string; endTime: string } | null = null;
         while (current + slotDuration <= endMin) {
@@ -59,13 +64,18 @@ export class AppointmentService {
           current += slotDuration + buffer;
         }
         if (!assignedSlot) throw new ConflictException('No available slot in elastic schedule');
-        // Create appointment
+        
+        // Create appointment with proper timestamp conversion
+        const appointmentDate = elasticSchedule.date;
+        const startTimestamp = new Date(`${appointmentDate}T${assignedSlot.startTime}:00`);
+        const endTimestamp = new Date(`${appointmentDate}T${assignedSlot.endTime}:00`);
+        
         const appointment = manager.create(Appointment, {
           patient,
           doctor,
           status: 'scheduled',
-          startTime: assignedSlot.startTime,
-          endTime: assignedSlot.endTime,
+          startTime: startTimestamp,
+          endTime: endTimestamp,
           elasticSchedule,
           date: elasticSchedule.date,
         });
@@ -88,32 +98,116 @@ export class AppointmentService {
   }
 
   async rescheduleAppointment(id: string, data: any, user: any) {
-    const appointment = await this.appointmentRepository.findOne({ where: { id }, relations: ['patient', 'patient.user', 'elasticSchedule'] });
+    const appointment = await this.appointmentRepository.findOne({ 
+      where: { id }, 
+      relations: ['patient', 'patient.user', 'elasticSchedule', 'doctor', 'slot'] 
+    });
     if (!appointment) throw new NotFoundException('Appointment not found');
     if (!appointment.patient || !appointment.patient.user) throw new NotFoundException('Patient or user not found');
     if (appointment.patient.user.id !== user.sub) throw new ForbiddenException('You can only reschedule your own appointments');
-    if (appointment.elasticSchedule) {
-      // Elastic slot reschedule: patient picks a new time
-      const elasticSchedule = appointment.elasticSchedule;
-      // Validate requested time is available
-      const requestedStart = data.startTime;
-      const requestedEnd = data.endTime;
-      // Get all appointments for doctor on that date
-      const appointments = await this.appointmentRepository.find({ where: { doctor: { id: appointment.doctor.id }, date: elasticSchedule.date } });
-      const bookedSlots = new Set<string>();
-      for (const appt of appointments) {
-        bookedSlots.add(`${appt.startTime}-${appt.endTime}`);
-      }
-      if (bookedSlots.has(`${requestedStart}-${requestedEnd}`)) {
-        throw new ConflictException('Requested slot is already booked');
-      }
-      appointment.startTime = requestedStart;
-      appointment.endTime = requestedEnd;
+    
+    // Check if user wants to reschedule TO a traditional slot (regardless of current appointment type)
+    if (data.slotId) {
+      const newSlot = await this.slotRepository.findOne({ where: { id: data.slotId } });
+      if (!newSlot) throw new NotFoundException('Slot not found');
+      
+      // Clear elastic schedule data if switching from elastic to traditional
+      appointment.elasticSchedule = undefined;
+      appointment.startTime = undefined;
+      appointment.endTime = undefined;
+      
+      // Set traditional slot data
+      appointment.slot = newSlot;
       appointment.status = 'rescheduled';
       await this.appointmentRepository.save(appointment);
       return appointment;
+    }
+    
+    // Handle elastic schedule rescheduling (either original elastic or rescheduling within elastic)
+    if (appointment.elasticSchedule) {
+      // Check if user just wants to get available slots
+      if (data.getAvailableSlots) {
+        const elasticSchedule = appointment.elasticSchedule;
+        // Get all appointments for doctor on that date
+        const appointments = await this.appointmentRepository.find({ where: { doctor: { id: appointment.doctor.id }, date: elasticSchedule.date } });
+        const bookedSlots = new Set<string>();
+        for (const appt of appointments) {
+          // Skip the current appointment being rescheduled
+          if (appt.id === appointment.id) continue;
+          // Extract time from timestamp for comparison
+          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          if (startTimeStr && endTimeStr) {
+            bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
+          }
+        }
+        
+        // Generate available slots
+        const availableSlots: { startTime: string; endTime: string }[] = [];
+        const slotDuration = elasticSchedule.slotDuration;
+        const buffer = elasticSchedule.bufferTime || 0;
+        const start = elasticSchedule.startTime;
+        const end = elasticSchedule.endTime;
+        const toMinutes = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        const fromMinutes = (m: number) => { const h = Math.floor(m / 60).toString().padStart(2, '0'); const min = (m % 60).toString().padStart(2, '0'); return `${h}:${min}`; };
+        let current = toMinutes(start);
+        const endMin = toMinutes(end);
+        
+        while (current + slotDuration <= endMin) {
+          const slotStart = fromMinutes(current);
+          const slotEnd = fromMinutes(current + slotDuration);
+          if (!bookedSlots.has(`${slotStart}-${slotEnd}`)) {
+            availableSlots.push({ startTime: slotStart, endTime: slotEnd });
+          }
+          current += slotDuration + buffer;
+        }
+        
+        return { availableSlots, elasticSchedule: elasticSchedule };
+      }
+      
+      // Elastic slot reschedule: patient picks a new time within same elastic schedule
+      const elasticSchedule = appointment.elasticSchedule;
+      
+      // Check if user wants to reschedule with specific start/end times
+      if (data.startTime && data.endTime) {
+        // Validate requested time is available
+        const requestedStart = data.startTime;
+        const requestedEnd = data.endTime;
+        // Get all appointments for doctor on that date
+        const appointments = await this.appointmentRepository.find({ where: { doctor: { id: appointment.doctor.id }, date: elasticSchedule.date } });
+        const bookedSlots = new Set<string>();
+        for (const appt of appointments) {
+          // Skip the current appointment being rescheduled
+          if (appt.id === appointment.id) continue;
+          // Extract time from timestamp for comparison
+          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          if (startTimeStr && endTimeStr) {
+            bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
+          }
+        }
+        if (bookedSlots.has(`${requestedStart}-${requestedEnd}`)) {
+          throw new ConflictException('Requested slot is already booked');
+        }
+        
+        // Convert time strings to proper timestamps
+        const appointmentDate = elasticSchedule.date;
+        const startTimestamp = new Date(`${appointmentDate}T${requestedStart}:00`);
+        const endTimestamp = new Date(`${appointmentDate}T${requestedEnd}:00`);
+        
+        appointment.startTime = startTimestamp;
+        appointment.endTime = endTimestamp;
+        appointment.status = 'rescheduled';
+        await this.appointmentRepository.save(appointment);
+        return appointment;
+      } else {
+        throw new Error('For elastic schedule appointments, startTime and endTime are required for rescheduling');
+      }
     } else {
-      // Traditional slot reschedule
+      // Original appointment was traditional slot, rescheduling to another traditional slot
+      if (!data.slotId) {
+        throw new Error('For traditional slot appointments, slotId is required for rescheduling');
+      }
       const newSlot = await this.slotRepository.findOne({ where: { id: data.slotId } });
       if (!newSlot) throw new NotFoundException('Slot not found');
       appointment.slot = newSlot;
@@ -138,7 +232,10 @@ export class AppointmentService {
     if (!patient) throw new NotFoundException('Patient not found');
     if (!patient.user) throw new NotFoundException('User not found for patient');
     if (patient.user.id !== user.sub) throw new ForbiddenException('You can only view your own appointments');
-    return this.appointmentRepository.find({ where: { patient: { id: patientId } } });
+    return this.appointmentRepository.find({ 
+      where: { patient: { id: patientId } },
+      relations: ['doctor', 'elasticSchedule', 'slot']
+    });
   }
 
   async getDoctorAppointments(doctorId: string, user: any) {
@@ -146,6 +243,9 @@ export class AppointmentService {
     if (!doctor) throw new NotFoundException('Doctor not found');
     if (!doctor.user) throw new NotFoundException('User not found for doctor');
     if (doctor.user.id !== user.sub) throw new ForbiddenException('You can only view your own appointments');
-    return this.appointmentRepository.find({ where: { doctor: { id: doctorId } } });
+    return this.appointmentRepository.find({ 
+      where: { doctor: { id: doctorId } },
+      relations: ['patient', 'elasticSchedule', 'slot']
+    });
   }
 } 

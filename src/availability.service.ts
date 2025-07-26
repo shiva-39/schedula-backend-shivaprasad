@@ -26,16 +26,33 @@ export class AvailabilityService {
       const doctor = await this.doctorRepository.findOne({ where: { id: doctorId }, relations: ['user'] });
       if (!doctor) throw new NotFoundException('Doctor not found');
       if (!doctor.user || doctor.user.id !== user.sub) throw new ForbiddenException('You can only add slots for your own profile');
-      // Convert date + time fields to Date objects for DB
-      const { date, startTime, endTime, ...rest } = slotData;
-      const startDateTime = new Date(`${date}T${startTime}`);
-      const endDateTime = new Date(`${date}T${endTime}`);
+      
+      // Handle different date formats
+      let startDateTime: Date;
+      let endDateTime: Date;
+      
+      if (slotData.date && typeof slotData.startTime === 'string' && !slotData.startTime.includes('T')) {
+        // Format: separate date and time fields
+        startDateTime = new Date(`${slotData.date}T${slotData.startTime}`);
+        endDateTime = new Date(`${slotData.date}T${slotData.endTime}`);
+      } else {
+        // Format: ISO datetime strings
+        startDateTime = new Date(slotData.startTime);
+        endDateTime = new Date(slotData.endTime);
+      }
+      
+      // Validate dates
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        throw new Error('Invalid date format. Use ISO datetime strings (e.g., "2025-07-30T09:00:00") or separate date and time fields.');
+      }
+      
       const slot = this.slotRepository.create({
-        ...rest,
         doctor,
         startTime: startDateTime,
         endTime: endDateTime,
+        mode: slotData.isAvailable !== false ? 'available' : 'unavailable', // default to available
       });
+      
       await this.slotRepository.save(slot);
       return slot;
     } catch (error) {
