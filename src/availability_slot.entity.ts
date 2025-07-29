@@ -15,6 +15,6 @@ export class AvailabilitySlot {
   @Column({ type: 'timestamp' })
   endTime: Date;
 
-  @Column()
-  mode: string; // 'wave' | 'stream'
-} 
+  @Column({ default: 'available' })
+  mode: string; // 'available' | 'booked' | 'unavailable'
+}

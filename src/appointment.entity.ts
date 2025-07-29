@@ -15,23 +15,24 @@ export class Appointment {
   @ManyToOne(() => Doctor, (doctor) => doctor.id)
   doctor: Doctor;
 
-  @ManyToOne(() => AvailabilitySlot, (slot) => slot.id)
-  slot: AvailabilitySlot;
+  @ManyToOne(() => AvailabilitySlot, (slot) => slot.id, { nullable: true })
+  slot?: AvailabilitySlot;
+
+  // Elastic scheduling support
+  @ManyToOne(() => ElasticScheduleEntity, { nullable: true })
+  elasticSchedule?: ElasticScheduleEntity;
+
+  @Column({ type: 'date', nullable: true })
+  date?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  startTime?: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  endTime?: Date;
 
   @Column()
   status: string; // scheduled, rescheduled, cancelled
-
-  @Column({ type: 'date', nullable: true })
-  date: string;
-
-  @Column({ type: 'time', nullable: true })
-  startTime: string;
-
-  @Column({ type: 'time', nullable: true })
-  endTime: string;
-
-  @ManyToOne(() => ElasticScheduleEntity, { nullable: true })
-  elasticSchedule: ElasticScheduleEntity;
 
   @CreateDateColumn()
   createdAt: Date;
