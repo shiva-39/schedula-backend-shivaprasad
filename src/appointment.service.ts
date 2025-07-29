@@ -54,21 +54,36 @@ export class AppointmentService {
           }
         }
         let assignedSlot: { startTime: string; endTime: string } | null = null;
-        while (current + slotDuration <= endMin) {
-          const slotStart = fromMinutes(current);
-          const slotEnd = fromMinutes(current + slotDuration);
-          if (!bookedSlots.has(`${slotStart}-${slotEnd}`)) {
-            assignedSlot = { startTime: slotStart, endTime: slotEnd };
-            break;
+        
+        // Check if specific times are requested (for recurring schedule bookings)
+        if (data.startTime && data.endTime) {
+          // Use the requested times directly
+          assignedSlot = { startTime: data.startTime, endTime: data.endTime };
+          
+          // Validate that the requested slot is not already booked
+          const requestedSlot = `${data.startTime}-${data.endTime}`;
+          if (bookedSlots.has(requestedSlot)) {
+            throw new ConflictException(`Time slot ${data.startTime}-${data.endTime} is already booked`);
           }
-          current += slotDuration + buffer;
+        } else {
+          // Auto-assign first available slot (original logic)
+          while (current + slotDuration <= endMin) {
+            const slotStart = fromMinutes(current);
+            const slotEnd = fromMinutes(current + slotDuration);
+            if (!bookedSlots.has(`${slotStart}-${slotEnd}`)) {
+              assignedSlot = { startTime: slotStart, endTime: slotEnd };
+              break;
+            }
+            current += slotDuration + buffer;
+          }
         }
+        
         if (!assignedSlot) throw new ConflictException('No available slot in elastic schedule');
         
         // Create appointment with proper timestamp conversion
-        const appointmentDate = elasticSchedule.date;
-        const startTimestamp = new Date(`${appointmentDate}T${assignedSlot.startTime}:00`);
-        const endTimestamp = new Date(`${appointmentDate}T${assignedSlot.endTime}:00`);
+        const appointmentDate = data.date || elasticSchedule.date;
+        const startTimestamp = new Date(`${appointmentDate}T${assignedSlot.startTime}:00.000Z`);
+        const endTimestamp = new Date(`${appointmentDate}T${assignedSlot.endTime}:00.000Z`);
         
         const appointment = manager.create(Appointment, {
           patient,
@@ -78,6 +93,46 @@ export class AppointmentService {
           endTime: endTimestamp,
           elasticSchedule,
           date: elasticSchedule.date,
+        });
+        await manager.save(Appointment, appointment);
+        return appointment;
+      });
+    } else if (data.recurringScheduleId && data.startTime && data.endTime && data.date) {
+      // Recurring schedule booking with specific time slots
+      return await this.dataSource.transaction(async manager => {
+        const patient = await this.patientRepository.findOne({ where: { user: { id: user.sub } } });
+        const doctor = await this.doctorRepository.findOne({ where: { id: data.doctorId } });
+        if (!patient || !doctor) throw new NotFoundException('Invalid patient or doctor');
+
+        // Validate the requested time slot is available
+        const appointments = await manager.find(Appointment, { 
+          where: { doctor: { id: doctor.id }, date: data.date } 
+        });
+        const bookedSlots = new Set<string>();
+        for (const appt of appointments) {
+          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          if (startTimeStr && endTimeStr) {
+            bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
+          }
+        }
+        
+        const requestedSlot = `${data.startTime}-${data.endTime}`;
+        if (bookedSlots.has(requestedSlot)) {
+          throw new ConflictException(`Time slot ${data.startTime}-${data.endTime} is already booked`);
+        }
+        
+        // Create appointment with specific times
+        const startTimestamp = new Date(`${data.date}T${data.startTime}:00.000Z`);
+        const endTimestamp = new Date(`${data.date}T${data.endTime}:00.000Z`);
+        
+        const appointment = manager.create(Appointment, {
+          patient,
+          doctor,
+          status: 'scheduled',
+          startTime: startTimestamp,
+          endTime: endTimestamp,
+          date: data.date,
         });
         await manager.save(Appointment, appointment);
         return appointment;

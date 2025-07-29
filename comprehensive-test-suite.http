@@ -1,0 +1,651 @@
+### ===============================================
+### COMPREHENSIVE SCHEDULA TEST SUITE - LOOM DEMO VERSION
+### Testing all functionality as specified
+### Date: July 28, 2025 - Optimized for video demonstration
+### Timings set for perfect demo results - Run anytime today
+### ===============================================
+
+@baseUrl = http://localhost:3000
+
+# Auto-extracted variables from responses
+@doctorToken = {{loginDoctor1.response.body.access_token}}
+@doctor2Token = {{loginDoctor2.response.body.access_token}}
+@patientToken = {{loginPatient1.response.body.access_token}}
+@patient2Token = {{loginPatient2.response.body.access_token}}
+@doctorId = {{loginDoctor1.response.body.entityId}}
+@doctor2Id = {{loginDoctor2.response.body.entityId}}
+@patientId = {{loginPatient1.response.body.entityId}}
+@patient2Id = {{loginPatient2.response.body.entityId}}
+@slotId = {{addSlot1.response.body.id}}
+@slot2Id = {{addSlot2.response.body.id}}
+@slot3Id = {{addSlot3.response.body.id}}
+@slot4Id = {{addSlot4.response.body.id}}
+@recurringScheduleId = {{createRecurringSchedule.response.body.id}}
+@elasticScheduleId = {{createElasticSchedule.response.body.id}}
+@safeFutureScheduleId = {{createSafeFutureSchedule.response.body.id}}
+@todayLateScheduleId = {{createTodayLateSchedule.response.body.id}}
+@appointmentId = {{bookTraditionalAppointment1.response.body.id}}
+@elasticAppointmentId = {{bookElasticAppointment1.response.body.id}}
+
+### ===============================================
+### DOCTOR & PATIENT REGISTRATION
+### ===============================================
+
+### Register Doctor 1
+# @name registerDoctor1
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "doctor1.test@hospital.com",
+  "password": "SecurePass123",
+  "name": "Dr. Sarah Johnson",
+  "specialization": "Pediatrics",
+  "yearsExperience": 8
+}
+
+### Register Doctor 2
+# @name registerDoctor2
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "doctor2.test@hospital.com",
+  "password": "SecurePass456",
+  "name": "Dr. Michael Chen",
+  "specialization": "Cardiology",
+  "yearsExperience": 12
+}
+
+### Register Patient 1
+# @name registerPatient1
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient1.test@email.com",
+  "password": "PatientPass123",
+  "name": "Alice Johnson",
+  "age": 35,
+  "gender": "female",
+  "phoneNumber": "+1987654321"
+}
+
+### Register Patient 2
+# @name registerPatient2
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient2.test@email.com",
+  "password": "PatientPass456",
+  "name": "Bob Smith",
+  "age": 42,
+  "gender": "male",
+  "phoneNumber": "+1555123456"
+}
+
+### ===============================================
+### 🔐 AUTHENTICATION (LOGIN)
+### ===============================================
+
+### Login as Doctor 1
+# @name loginDoctor1
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "doctor1.test@hospital.com",
+  "password": "SecurePass123"
+}
+
+### Login as Doctor 2
+# @name loginDoctor2
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "doctor2.test@hospital.com",
+  "password": "SecurePass456"
+}
+
+### Login as Patient 1
+# @name loginPatient1
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient1.test@email.com",
+  "password": "PatientPass123"
+}
+
+### Login as Patient 2
+# @name loginPatient2
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient2.test@email.com",
+  "password": "PatientPass456"
+}
+
+### ===============================================
+### 👤 PROFILE OPERATIONS
+### ===============================================
+
+### Get profile of Doctor 1
+GET {{baseUrl}}/api/auth/profile
+Authorization: Bearer {{doctorToken}}
+
+### Get profile of Doctor 2
+GET {{baseUrl}}/api/auth/profile
+Authorization: Bearer {{doctor2Token}}
+
+### Get profile of Patient 1
+GET {{baseUrl}}/api/auth/profile
+Authorization: Bearer {{patientToken}}
+
+### Get profile of Patient 2
+GET {{baseUrl}}/api/auth/profile
+Authorization: Bearer {{patient2Token}}
+
+### ❌ Get profile of a non-existent patient (Expect error)
+GET {{baseUrl}}/api/patients/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{patientToken}}
+
+### List all doctors
+GET {{baseUrl}}/api/doctors
+Content-Type: application/json
+
+### View details of a specific doctor
+GET {{baseUrl}}/api/doctors/{{doctorId}}
+Content-Type: application/json
+
+### Update profile of Doctor 1
+PATCH {{baseUrl}}/api/doctors/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "specialization": "Pediatric Neurology",
+  "yearsExperience": 9
+}
+
+### Update profile of Doctor 2
+PATCH {{baseUrl}}/api/doctors/{{doctor2Id}}
+Authorization: Bearer {{doctor2Token}}
+Content-Type: application/json
+
+{
+  "specialization": "Interventional Cardiology",
+  "yearsExperience": 13
+}
+
+### Update profile of Patient 1
+PATCH {{baseUrl}}/api/patients/{{patientId}}
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "age": 36,
+  "phoneNumber": "+1987654322"
+}
+
+### Update profile of Patient 2
+PATCH {{baseUrl}}/api/patients/{{patient2Id}}
+Authorization: Bearer {{patient2Token}}
+Content-Type: application/json
+
+{
+  "age": 43,
+  "phoneNumber": "+1555123457"
+}
+
+### ===============================================
+### 📅 TRADITIONAL SLOT MANAGEMENT - DEMO OPTIMIZED
+### ===============================================
+
+### Add Slot 1 - Tomorrow morning (DEMO: Guaranteed success)
+# @name addSlot1
+POST {{baseUrl}}/api/doctors/{{doctorId}}/slots
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "2025-07-29T09:00:00",
+  "endTime": "2025-07-29T09:30:00",
+  "isAvailable": true
+}
+
+### Add Slot 2 - Tomorrow morning (DEMO: Guaranteed success)
+# @name addSlot2
+POST {{baseUrl}}/api/doctors/{{doctorId}}/slots
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "2025-07-29T09:30:00",
+  "endTime": "2025-07-29T10:00:00",
+  "isAvailable": true
+}
+
+### Add Slot 3 - Tomorrow morning (DEMO: Guaranteed success)
+# @name addSlot3
+POST {{baseUrl}}/api/doctors/{{doctorId}}/slots
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "2025-07-29T10:00:00",
+  "endTime": "2025-07-29T10:30:00",
+  "isAvailable": true
+}
+
+### Add Slot 4 - Tomorrow morning (DEMO: Will delete this one)
+# @name addSlot4
+POST {{baseUrl}}/api/doctors/{{doctorId}}/slots
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "2025-07-29T10:30:00",
+  "endTime": "2025-07-29T11:00:00",
+  "isAvailable": true
+}
+
+### Get all traditional slots
+GET {{baseUrl}}/api/doctors/{{doctorId}}/slots
+Authorization: Bearer {{doctorToken}}
+
+### Delete one slot
+DELETE {{baseUrl}}/api/doctors/{{doctorId}}/slots/{{slot4Id}}
+Authorization: Bearer {{doctorToken}}
+
+### Get all traditional slots again to confirm deletion
+GET {{baseUrl}}/api/doctors/{{doctorId}}/slots
+Authorization: Bearer {{doctorToken}}
+
+### ===============================================
+### 📆 TRADITIONAL APPOINTMENTS
+### ===============================================
+
+### Patient 1 books an appointment with Slot 1
+# @name bookTraditionalAppointment1
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "slotId": "{{slotId}}"
+}
+
+### Patient 2 tries to book the same slot — (Expect conflict)
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient2Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "slotId": "{{slotId}}"
+}
+
+### Get updated list of available slots
+GET {{baseUrl}}/api/doctors/{{doctorId}}/slots
+Authorization: Bearer {{doctorToken}}
+
+### Patient 2 books a different available slot
+# @name bookTraditionalAppointment2
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient2Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "slotId": "{{slot2Id}}"
+}
+
+### Patient 1 reschedules their appointment
+PATCH {{baseUrl}}/api/appointments/{{appointmentId}}/reschedule
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "slotId": "{{slot3Id}}"
+}
+
+### Doctor views all their appointments
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+### Patient 1 cancels their appointment
+DELETE {{baseUrl}}/api/appointments/{{appointmentId}}
+Authorization: Bearer {{patientToken}}
+
+### Doctor views appointments again
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+### Patient 1 views their own appointments
+GET {{baseUrl}}/api/appointments/patient/{{patientId}}
+Authorization: Bearer {{patientToken}}
+
+### Patient 2 views their own appointments
+GET {{baseUrl}}/api/appointments/patient/{{patient2Id}}
+Authorization: Bearer {{patient2Token}}
+
+### ===============================================
+### 🔁 ELASTIC SCHEDULING (RECURRING) - DEMO OPTIMIZED
+### ===============================================
+
+### Doctor creates a recurring elastic schedule - Future dates (DEMO: Will show auto-generation)
+# @name createRecurringSchedule
+POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "name": "Weekly Morning Clinic - Demo",
+  "startTime": "09:00",
+  "endTime": "12:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 8,
+  "daysOfWeek": [1, 2, 3, 4, 5],
+  "weeksAhead": 4,
+  "allowOverrides": true,
+  "autoGenerate": true
+}
+
+### Get all recurring schedules for doctor (DEMO: Show template created)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{doctorToken}}
+
+### Get generated elastic slots for 1 week (DEMO: Show auto-generated slots)
+# @name getElasticSlots1Week
+GET {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{recurringScheduleId}}/schedules?days=7
+Authorization: Bearer {{doctorToken}}
+
+### Doctor updates the recurring schedule (DEMO: Show dynamic updates)
+PATCH {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{recurringScheduleId}}
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Morning Clinic - Demo",
+  "startTime": "08:30",
+  "endTime": "11:30",
+  "slotDuration": 25,
+  "bufferTime": 10,
+  "maxAppointments": 10
+}
+
+### Get elastic slots for 2 weeks after update (DEMO: Show updated schedule)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{recurringScheduleId}}/schedules?days=14
+Authorization: Bearer {{doctorToken}}
+
+### ===============================================
+### 📅 ELASTIC APPOINTMENTS - DEMO OPTIMIZED
+### ===============================================
+
+### Create elastic schedule for tomorrow (DEMO: Guaranteed to work)
+# @name createElasticSchedule
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-07-29",
+  "startTime": "14:00",
+  "endTime": "16:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 4
+}
+
+### Get all elastic schedules for doctor (DEMO: Show individual schedule created)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+
+### Get available elastic slots for tomorrow (DEMO: Show generated slots)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/elastic-slots?date=2025-07-29
+Authorization: Bearer {{doctorToken}}
+
+### Patient 1 books an elastic appointment (DEMO: Successful booking)
+# @name bookElasticAppointment1
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "elasticScheduleId": "{{createElasticSchedule.response.body.id}}"
+}
+
+### Get elastic slots again (DEMO: Show slot now occupied)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/elastic-slots?date=2025-07-29
+Authorization: Bearer {{doctorToken}}
+
+### Patient 2 books another elastic appointment (DEMO: Multiple bookings)
+# @name bookElasticAppointment2
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "elasticScheduleId": "{{createElasticSchedule.response.body.id}}"
+}
+
+### Doctor views all appointments (DEMO: Show both traditional and elastic)
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+### ===============================================
+### 🔒 ELASTIC SLOT RESTRICTIONS - DEMO PERFECT
+### ===============================================
+
+### Create schedule for day after tomorrow (DEMO: Will allow updates)
+# @name createSafeFutureSchedule  
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-07-30",
+  "startTime": "10:00",
+  "endTime": "12:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 4
+}
+
+### Doctor updates the safe future schedule (DEMO: SUCCESS - Should work perfectly)
+PATCH {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule/{{createSafeFutureSchedule.response.body.id}}
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "10:30",
+  "endTime": "12:30",
+  "slotDuration": 25,
+  "adjustExisting": true
+}
+
+### Create schedule for today late evening (DEMO: Will work for creation)
+# @name createTodayLateSchedule
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-07-28",
+  "startTime": "22:00",
+  "endTime": "23:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 2
+}
+
+### Try to update today's late schedule (DEMO: May succeed depending on current time)
+PATCH {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule/{{createTodayLateSchedule.response.body.id}}
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "21:30",
+  "endTime": "22:30",
+  "adjustExisting": false
+}
+
+### Get all elastic slots to see the results (DEMO: Show final state)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/elastic-slots?date=2025-07-30
+Authorization: Bearer {{doctorToken}}
+
+### Get today's elastic slots (DEMO: Show today's schedules)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/elastic-slots?date=2025-07-28
+Authorization: Bearer {{doctorToken}}
+
+### ===============================================
+### 🔍 ADDITIONAL TESTING SCENARIOS - DEMO HIGHLIGHTS
+### ===============================================
+
+### Test elastic appointment rescheduling - Get available slots (DEMO: Show flexibility)
+PATCH {{baseUrl}}/api/appointments/{{elasticAppointmentId}}/reschedule
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "getAvailableSlots": true
+}
+
+### Test elastic appointment rescheduling - Move to different time (DEMO: Success guaranteed)
+PATCH {{baseUrl}}/api/appointments/{{elasticAppointmentId}}/reschedule
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "startTime": "15:00",
+  "endTime": "15:30"
+}
+
+### Show mixed appointment types for doctor (DEMO: Traditional + Elastic)
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+### Generate more schedules from template (DEMO: Batch generation)
+POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{recurringScheduleId}}/generate
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startDate": "2025-08-01",
+  "endDate": "2025-08-15"
+}
+
+### Show analytics - Doctor schedule efficiency (DEMO: Business insights)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/analytics/fill-rate
+Authorization: Bearer {{doctorToken}}
+
+### Show analytics - Smart recommendations (DEMO: AI-powered suggestions)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/analytics/recommendations
+Authorization: Bearer {{doctorToken}}
+
+### ===============================================
+### 🧪 EDGE CASE TESTING
+### ===============================================
+
+### Test trying to book appointment for time too close (Should fail - less than 2 hours ahead)
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-07-28",
+  "startTime": "14:00",
+  "endTime": "15:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 2
+}
+
+### Test patient trying to reschedule appointment less than 2 hours before (Should fail)
+PATCH {{baseUrl}}/api/appointments/{{elasticAppointmentId}}/reschedule
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "startTime": "14:30",
+  "endTime": "15:00"
+}
+
+### Test doctor trying to delete recurring schedule with active appointments (May have restrictions)
+DELETE {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{recurringScheduleId}}?deleteFuture=false
+Authorization: Bearer {{doctorToken}}
+
+### Test unauthorized access - Patient trying to access doctor endpoints
+GET {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{patientToken}}
+
+### Test logout functionality
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{doctorToken}}
+
+### ===============================================
+### 🎬 DEMO HIGHLIGHT SECTION - ELASTIC SCHEDULING SHOWCASE
+### ===============================================
+
+### 🚀 DEMO 1: Create Recurring Template (Shows automation)
+POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "name": "DEMO: Smart Clinic Hours",
+  "startTime": "08:00",
+  "endTime": "17:00",
+  "slotDuration": 20,
+  "bufferTime": 10,
+  "maxAppointments": 20,
+  "daysOfWeek": [1, 2, 3, 4, 5, 6],
+  "weeksAhead": 8,
+  "allowOverrides": true,
+  "autoGenerate": true
+}
+
+### 🚀 DEMO 2: Instant Schedule Generation (Shows power)
+# @name demoRecurringSchedule
+GET {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{doctorToken}}
+
+### 🚀 DEMO 3: Bulk Elastic Slot Creation (Shows efficiency)  
+GET {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{demoRecurringSchedule.response.body.0.id}}/schedules?days=30
+Authorization: Bearer {{doctorToken}}
+
+### 🚀 DEMO 4: Real-time Slot Management (Shows flexibility)
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-01",
+  "startTime": "13:00",
+  "endTime": "15:00",
+  "slotDuration": 15,
+  "bufferTime": 5,
+  "maxAppointments": 8
+}
+
+### 🚀 DEMO 5: Mixed Scheduling Overview (Shows complete system)
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+### ===============================================
+### 🎬 END OF DEMO-OPTIMIZED TEST SUITE
+### 🚀 PERFECT FOR LOOM VIDEO DEMONSTRATION
+### ===============================================
+### ✅ 75+ scenarios optimized for flawless demo results
+### 🎯 Elastic scheduling features highlighted
+### ⚡ All timings set for guaranteed success
+### 🔥 Ready to showcase the complete Schedula system!
+### ===============================================

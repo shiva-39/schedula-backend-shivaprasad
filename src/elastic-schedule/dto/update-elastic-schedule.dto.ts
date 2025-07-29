@@ -5,4 +5,5 @@ export class UpdateElasticScheduleDto {
   slotDuration?: number;
   bufferTime?: number;
   maxAppointments?: number;
+  adjustExisting?: boolean; // New parameter for automatic appointment rescheduling
 }

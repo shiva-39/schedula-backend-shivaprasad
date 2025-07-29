@@ -66,4 +66,31 @@ export class ElasticScheduleController {
   ) {
     return this.elasticScheduleService.getElasticSlots(doctorId, date);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('available-slots')
+  async getAvailableSlots(
+    @Param('id') doctorId: string, 
+    @Query('date') date: string
+  ) {
+    return this.elasticScheduleService.getAvailableSlots(doctorId, date);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('reschedule-appointments')
+  async rescheduleAppointments(
+    @Param('id') doctorId: string,
+    @Body() body: { date: string; newStartTime: string; newEndTime: string },
+    @Req() req
+  ) {
+    // Create a temporary schedule object for rescheduling
+    const newSchedule = {
+      startTime: body.newStartTime,
+      endTime: body.newEndTime,
+      slotDuration: 30, // Default slot duration
+      bufferTime: 5     // Default buffer time
+    };
+    
+    return this.elasticScheduleService.rescheduleExistingAppointments(doctorId, body.date, newSchedule);
+  }
 }

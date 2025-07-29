@@ -1,0 +1,218 @@
+### ===============================================
+### 🎬 RECURRING SCHEDULE DEMO - FRESH START
+### Date: July 29, 2025
+### ===============================================
+
+@baseUrl = http://localhost:3000
+
+# Auto-extracted variables from responses
+@doctorToken = {{loginDoctor.response.body.access_token}}
+@patientToken = {{loginPatient.response.body.access_token}}
+@doctorId = {{loginDoctor.response.body.entityId}}
+@patientId = {{loginPatient.response.body.entityId}}
+
+### ===============================================
+### 🚀 STEP 1: REGISTER DOCTOR
+### ===============================================
+
+# @name registerDoctor
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "dr.demo1.july29.v2@schedula.com",
+  "password": "DemoDoc2025!New",
+  "name": "Dr. Emma DemoDay",
+  "specialization": "Family Medicine",
+  "yearsExperience": 12
+}
+
+### ===============================================
+### 🚀 STEP 2: REGISTER PATIENT
+### ===============================================
+
+# @name registerPatient
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient1.demo.july29.v2@schedula.com",
+  "password": "DemoPatient2025!New",
+  "name": "John DemoPatient",
+  "age": 28,
+  "gender": "male",
+  "phoneNumber": "+1555123987"
+}
+
+### ===============================================
+### 🔐 STEP 3: LOGIN DOCTOR
+### ===============================================
+
+# @name loginDoctor
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "dr.demo1.july29.v2@schedula.com",
+  "password": "DemoDoc2025!New"
+}
+
+### ===============================================
+### 🔐 STEP 4: LOGIN PATIENT
+### ===============================================
+
+# @name loginPatient
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient1.demo.july29.v2@schedula.com",
+  "password": "DemoPatient2025!New"
+}
+
+### ===============================================
+### 🔁 STEP 5: CREATE RECURRING SCHEDULE
+### ===============================================
+
+# @name createRecurringSchedule
+# Doctor creates a recurring schedule that repeats weekly
+# Tuesday-Friday, 10 AM to 6 PM, 30-minute slots with 5-minute buffer
+# Schedule starts from 10:00 AM to allow for 2-hour advance booking rule demonstration
+POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "name": "DEMO: Weekly Medical Practice July 29",
+  "startTime": "10:00",
+  "endTime": "18:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 16,
+  "daysOfWeek": [1, 2, 3, 4, 5],
+  "weeksAhead": 4,
+  "allowOverrides": true,
+  "autoGenerate": true
+}
+
+### ===============================================
+### 📅 STEP 6: DISPLAY WEEKLY SLOTS FROM RECURRING TEMPLATE
+### ===============================================
+
+# View available slots for today (Tuesday, July 29th, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-29
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Wednesday (July 30th, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-30
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Thursday (July 31st, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-31
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Friday (August 1st, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-08-01
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Monday (August 4th, 2025) - Next week
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-08-04
+Authorization: Bearer {{patientToken}}
+
+### ===============================================
+### 📝 STEP 7: PATIENT BOOKS PARTICULAR SLOT
+### ===============================================
+
+# @name bookAppointment
+# Patient books the specific time slot 10:00-10:30 for today (Tuesday, July 29th)
+# This slot meets the 2-hour advance booking requirement
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createRecurringSchedule.response.body.id}}",
+  "date": "2025-07-29",
+  "startTime": "10:00",
+  "endTime": "10:30"
+}
+
+### ===============================================
+### 📅 STEP 8: VIEW PATIENT APPOINTMENTS
+### ===============================================
+
+# View the patient's appointments to confirm the booking
+# This should show the 10:00-10:30 appointment that was just booked
+GET {{baseUrl}}/api/appointments/patient/{{patientId}}
+Authorization: Bearer {{patientToken}}
+
+### ===============================================
+### 🔧 STEP 9: UPDATE TODAY'S SCHEDULE (DAY-SPECIFIC OVERRIDE)
+### ===============================================
+
+# @name createElasticSchedule
+# Doctor creates a day-specific override for ONLY Tuesday, July 29th
+# Change hours from 10:00-18:00 to 11:00-17:00 for TODAY ONLY
+# Future Tuesdays will continue using the original recurring schedule
+# adjustExisting=true will automatically reschedule conflicting appointments
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-07-29",
+  "startTime": "11:00",
+  "endTime": "17:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 12,
+  "adjustExisting": true
+}
+
+### ===============================================
+### 📅 STEP 10: DISPLAY UPDATED SLOTS AFTER SCHEDULE CHANGE
+### ===============================================
+
+# View available slots for today after the schedule update
+# Should now show slots from 11:00-17:00 instead of 10:00-18:00
+# This demonstrates the day-specific override in effect
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-29
+Authorization: Bearer {{patientToken}}
+
+### ===============================================
+### 🔄 STEP 11: VERIFY AUTOMATIC APPOINTMENT RESCHEDULING
+### ===============================================
+
+# View patient appointments after the schedule update with adjustExisting=true
+# The original 10:00-10:30 appointment should now be automatically rescheduled
+# to the first available slot in the new schedule (11:00-11:30) with status "rescheduled"
+GET {{baseUrl}}/api/appointments/patient/{{patientId}}
+Authorization: Bearer {{patientToken}}
+
+### ===============================================
+### ❌ STEP 12: DEMONSTRATE 2-HOUR ADVANCE BOOKING RESTRICTION
+### ===============================================
+
+# Try to update the recurring template with regenerateFuture=true - this should FAIL with 2-hour restriction
+# Since we're already past 9:30 AM and trying to regenerate today's schedule that starts at 10:00 AM,
+# this violates the 2-hour advance notice rule (need to update before 8:00 AM for 10:00 AM start)
+PATCH {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{createRecurringSchedule.response.body.id}}
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "09:00",
+  "endTime": "19:00",
+  "regenerateFuture": true
+}
+
+
