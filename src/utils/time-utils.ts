@@ -25,17 +25,40 @@ export function formatTime(date: Date): string {
 }
 
 /**
- * Gets current time in HH:MM format (24-hour)
+ * Gets current time in HH:MM format (24-hour) - UTC time
  */
 export function getCurrentTime(): string {
   return formatTime(new Date());
 }
 
 /**
- * Gets current date in YYYY-MM-DD format
+ * Gets current time in HH:MM format (24-hour) - LOCAL time
+ * Use this for business logic that needs local time (like 2-hour advance booking restrictions)
+ */
+export function getCurrentLocalTime(): string {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2, '0');
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+/**
+ * Gets current date in YYYY-MM-DD format - UTC
  */
 export function getCurrentDate(): string {
   return formatDate(new Date());
+}
+
+/**
+ * Gets current date in YYYY-MM-DD format - LOCAL time
+ * Use this for business logic that needs local date
+ */
+export function getCurrentLocalDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**

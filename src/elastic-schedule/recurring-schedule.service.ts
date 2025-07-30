@@ -13,7 +13,9 @@ import { GenerateSchedulesDto } from './dto/generate-schedules.dto';
 import { CreateDateOverrideDto } from './dto/create-date-override.dto';
 import { 
   getCurrentDate, 
+  getCurrentLocalDate,
   getCurrentTime, 
+  getCurrentLocalTime,
   timeToMinutes, 
   minutesToTime,
   formatDate,
@@ -450,7 +452,7 @@ export class RecurringScheduleService {
     overrides: Partial<ElasticScheduleEntity>,
     template: RecurringScheduleEntity,
   ) {
-    const today = getCurrentDate();
+    const today = getCurrentLocalDate(); // Use local date for business logic
 
     // Check if trying to override past dates
     if (date < today) {
@@ -459,7 +461,7 @@ export class RecurringScheduleService {
 
     // For today's override, check 2-hour advance notice
     if (date === today) {
-      const currentTime = getCurrentTime();
+      const currentTime = getCurrentLocalTime(); // Use local time for business logic
       const sessionStartTime = overrides.startTime || template.startTime;
 
       const currentMinutes = timeToMinutes(currentTime);
@@ -488,12 +490,12 @@ export class RecurringScheduleService {
     if (!regenerateFuture) return; // No validation needed if not regenerating
 
     const now = new Date();
-    const today = getCurrentDate();
+    const today = getCurrentLocalDate(); // Use local date for business logic
     const currentDayOfWeek = now.getDay();
 
     // Check if today is one of the template's active days
     if (template.daysOfWeek.includes(currentDayOfWeek)) {
-      const currentTime = getCurrentTime();
+      const currentTime = getCurrentLocalTime(); // Use local time for business logic
       const sessionStartTime = template.startTime;
 
       const currentMinutes = timeToMinutes(currentTime);
