@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { Appointment } from './appointment.entity';
 import { ElasticScheduleEntity } from './elastic-schedule/elastic-schedule.entity';
+import { RecurringScheduleEntity } from './elastic-schedule/recurring-schedule.entity';
 import { Patient } from './patient/patient.entity';
 import { Doctor } from './doctor/doctor.entity';
 import { AvailabilitySlot } from './availability_slot.entity';
@@ -21,6 +22,8 @@ export class AppointmentService {
     private readonly dataSource: DataSource,
     @InjectRepository(ElasticScheduleEntity)
     private readonly elasticScheduleRepo: Repository<ElasticScheduleEntity>,
+    @InjectRepository(RecurringScheduleEntity)
+    private readonly recurringScheduleRepo: Repository<RecurringScheduleEntity>,
   ) {}
 
   async createAppointment(data: any, user: any) {
@@ -42,21 +45,42 @@ export class AppointmentService {
         const fromMinutes = (m: number) => { const h = Math.floor(m / 60).toString().padStart(2, '0'); const min = (m % 60).toString().padStart(2, '0'); return `${h}:${min}`; };
         let current = toMinutes(start);
         const endMin = toMinutes(end);
-        // Get all appointments for doctor on that date
-        const appointments = await manager.find(Appointment, { where: { doctor: { id: doctor.id }, date: elasticSchedule.date } });
+        // Get all active appointments for doctor on that date (excluding cancelled)
+        const appointments = await manager.find(Appointment, { 
+          where: { 
+            doctor: { id: doctor.id }, 
+            date: elasticSchedule.date,
+            status: In(['scheduled', 'rescheduled']) // Exclude cancelled appointments
+          } 
+        });
         const bookedSlots = new Set<string>();
         for (const appt of appointments) {
-          // Extract time from timestamp for comparison
-          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
-          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          // Extract time from UTC timestamp for comparison
+          const startTimeStr = appt.startTime ? appt.startTime.toISOString().substring(11, 16) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toISOString().substring(11, 16) : '';
           if (startTimeStr && endTimeStr) {
             bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
           }
         }
+        
+        // Debug logging to see what slots are booked
+        console.log('DEBUG: Booked slots for date', elasticSchedule.date, ':', Array.from(bookedSlots));
+        console.log('DEBUG: Requested slot:', `${data.startTime}-${data.endTime}`);
+        
         let assignedSlot: { startTime: string; endTime: string } | null = null;
         
         // Check if specific times are requested (for recurring schedule bookings)
         if (data.startTime && data.endTime) {
+          // Validate that the requested times are within the schedule's time range
+          const requestedStartMin = toMinutes(data.startTime);
+          const requestedEndMin = toMinutes(data.endTime);
+          const scheduleStartMin = toMinutes(start);
+          const scheduleEndMin = toMinutes(end);
+          
+          if (requestedStartMin < scheduleStartMin || requestedEndMin > scheduleEndMin) {
+            throw new ConflictException(`Requested time ${data.startTime}-${data.endTime} is outside doctor's available hours ${start}-${end}`);
+          }
+          
           // Use the requested times directly
           assignedSlot = { startTime: data.startTime, endTime: data.endTime };
           
@@ -104,18 +128,43 @@ export class AppointmentService {
         const doctor = await this.doctorRepository.findOne({ where: { id: data.doctorId } });
         if (!patient || !doctor) throw new NotFoundException('Invalid patient or doctor');
 
+        // Get the recurring schedule to validate time range
+        const recurringSchedule = await this.recurringScheduleRepo.findOne({ 
+          where: { id: data.recurringScheduleId } 
+        });
+        if (!recurringSchedule) throw new NotFoundException('Recurring schedule not found');
+
+        // Validate that the requested times are within the recurring schedule's time range
+        const toMinutes = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        const requestedStartMin = toMinutes(data.startTime);
+        const requestedEndMin = toMinutes(data.endTime);
+        const scheduleStartMin = toMinutes(recurringSchedule.startTime);
+        const scheduleEndMin = toMinutes(recurringSchedule.endTime);
+        
+        if (requestedStartMin < scheduleStartMin || requestedEndMin > scheduleEndMin) {
+          throw new ConflictException(`Requested time ${data.startTime}-${data.endTime} is outside doctor's available hours ${recurringSchedule.startTime}-${recurringSchedule.endTime}`);
+        }
+
         // Validate the requested time slot is available
         const appointments = await manager.find(Appointment, { 
-          where: { doctor: { id: doctor.id }, date: data.date } 
+          where: { 
+            doctor: { id: doctor.id }, 
+            date: data.date,
+            status: In(['scheduled', 'rescheduled']) // Exclude cancelled appointments
+          } 
         });
         const bookedSlots = new Set<string>();
         for (const appt of appointments) {
-          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
-          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          const startTimeStr = appt.startTime ? appt.startTime.toISOString().substring(11, 16) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toISOString().substring(11, 16) : '';
           if (startTimeStr && endTimeStr) {
             bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
           }
         }
+        
+        // Debug logging for recurring schedule booking
+        console.log('DEBUG: Recurring schedule - Booked slots for date', data.date, ':', Array.from(bookedSlots));
+        console.log('DEBUG: Recurring schedule - Requested slot:', `${data.startTime}-${data.endTime}`);
         
         const requestedSlot = `${data.startTime}-${data.endTime}`;
         if (bookedSlots.has(requestedSlot)) {
@@ -183,15 +232,21 @@ export class AppointmentService {
       // Check if user just wants to get available slots
       if (data.getAvailableSlots) {
         const elasticSchedule = appointment.elasticSchedule;
-        // Get all appointments for doctor on that date
-        const appointments = await this.appointmentRepository.find({ where: { doctor: { id: appointment.doctor.id }, date: elasticSchedule.date } });
+        // Get all active appointments for doctor on that date (excluding cancelled)
+        const appointments = await this.appointmentRepository.find({ 
+          where: { 
+            doctor: { id: appointment.doctor.id }, 
+            date: elasticSchedule.date,
+            status: In(['scheduled', 'rescheduled']) // Exclude cancelled appointments
+          } 
+        });
         const bookedSlots = new Set<string>();
         for (const appt of appointments) {
           // Skip the current appointment being rescheduled
           if (appt.id === appointment.id) continue;
-          // Extract time from timestamp for comparison
-          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
-          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          // Extract time from UTC timestamp for comparison
+          const startTimeStr = appt.startTime ? appt.startTime.toISOString().substring(11, 16) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toISOString().substring(11, 16) : '';
           if (startTimeStr && endTimeStr) {
             bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
           }
@@ -228,15 +283,21 @@ export class AppointmentService {
         // Validate requested time is available
         const requestedStart = data.startTime;
         const requestedEnd = data.endTime;
-        // Get all appointments for doctor on that date
-        const appointments = await this.appointmentRepository.find({ where: { doctor: { id: appointment.doctor.id }, date: elasticSchedule.date } });
+        // Get all active appointments for doctor on that date (excluding cancelled)
+        const appointments = await this.appointmentRepository.find({ 
+          where: { 
+            doctor: { id: appointment.doctor.id }, 
+            date: elasticSchedule.date,
+            status: In(['scheduled', 'rescheduled']) // Exclude cancelled appointments
+          } 
+        });
         const bookedSlots = new Set<string>();
         for (const appt of appointments) {
           // Skip the current appointment being rescheduled
           if (appt.id === appointment.id) continue;
-          // Extract time from timestamp for comparison
-          const startTimeStr = appt.startTime ? appt.startTime.toTimeString().substring(0, 5) : '';
-          const endTimeStr = appt.endTime ? appt.endTime.toTimeString().substring(0, 5) : '';
+          // Extract time from UTC timestamp for comparison
+          const startTimeStr = appt.startTime ? appt.startTime.toISOString().substring(11, 16) : '';
+          const endTimeStr = appt.endTime ? appt.endTime.toISOString().substring(11, 16) : '';
           if (startTimeStr && endTimeStr) {
             bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
           }

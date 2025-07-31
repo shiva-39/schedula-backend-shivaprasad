@@ -5,8 +5,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { ElasticScheduleEntity } from './elastic-schedule.entity';
+import { RecurringScheduleEntity } from './recurring-schedule.entity';
 import { Doctor } from '../doctor/doctor.entity';
 import { Appointment } from '../appointment.entity';
 import { CreateElasticScheduleDto } from './dto/create-elastic-schedule.dto';
@@ -17,6 +18,8 @@ export class ElasticScheduleService {
   constructor(
     @InjectRepository(ElasticScheduleEntity)
     private readonly elasticScheduleRepo: Repository<ElasticScheduleEntity>,
+    @InjectRepository(RecurringScheduleEntity)
+    private readonly recurringScheduleRepo: Repository<RecurringScheduleEntity>,
     @InjectRepository(Doctor)
     private readonly doctorRepo: Repository<Doctor>,
     @InjectRepository(Appointment)
@@ -177,7 +180,7 @@ export class ElasticScheduleService {
       schedule = elasticSchedule;
     } else {
       // Fall back to recurring schedule
-      const recurringSchedules = await this.dataSource.getRepository('RecurringSchedule').find({
+      const recurringSchedules = await this.recurringScheduleRepo.find({
         where: { doctor: { id: doctorId } },
       });
       
@@ -188,18 +191,23 @@ export class ElasticScheduleService {
       schedule = recurringSchedules[0]; // Use first recurring schedule
     }
 
-    // Get booked appointments for this date
-    const appointments = await this.dataSource.getRepository('Appointment').find({
+    // Get booked appointments for this date (excluding cancelled appointments)
+    const appointments = await this.appointmentRepo.find({
       where: {
         doctor: { id: doctorId },
         date: date,
+        status: In(['scheduled', 'rescheduled']), // Exclude cancelled appointments
       },
+      relations: ['patient'], // Load patient relation for debug info
     });
 
     const bookedSlots = new Set<string>();
     for (const appointment of appointments) {
       if (appointment.startTime && appointment.endTime) {
-        bookedSlots.add(`${appointment.startTime}-${appointment.endTime}`);
+        // Extract time in HH:MM format from UTC timestamp properly
+        const startTimeStr = appointment.startTime.toISOString().substring(11, 16);
+        const endTimeStr = appointment.endTime.toISOString().substring(11, 16);
+        bookedSlots.add(`${startTimeStr}-${endTimeStr}`);
       }
     }
 
@@ -247,7 +255,7 @@ export class ElasticScheduleService {
 
   async rescheduleExistingAppointments(doctorId: string, date: string, newSchedule: any) {
     // Get all appointments for this doctor on this date
-    const appointments = await this.dataSource.getRepository('Appointment').find({
+    const appointments = await this.appointmentRepo.find({
       where: {
         doctor: { id: doctorId },
         date: date,
@@ -289,7 +297,6 @@ export class ElasticScheduleService {
     
     const rescheduledAppointments: Array<{ appointmentId: string; patientName: string; oldTime: string; newTime: string }> = [];
     const notifiedPatients: Array<{ appointmentId: string; patientName: string; oldTime: string; reason: string }> = [];
-    const appointmentRepo = this.dataSource.getRepository('Appointment');
 
     // Reschedule appointments that can fit in available slots
     for (let i = 0; i < canFitInSlots; i++) {
@@ -297,7 +304,9 @@ export class ElasticScheduleService {
       const newSlot = availableSlots[i];
       
       // Store old time for tracking
-      const oldTime = `${appointment.startTime.toTimeString().substring(0, 5)}-${appointment.endTime.toTimeString().substring(0, 5)}`;
+      const oldTime = appointment.startTime && appointment.endTime ? 
+        `${appointment.startTime.toISOString().substring(11, 16)}-${appointment.endTime.toISOString().substring(11, 16)}` : 
+        'Unknown';
       
       // Update appointment times
       const appointmentDate = date;
@@ -308,11 +317,11 @@ export class ElasticScheduleService {
       appointment.endTime = newEndTimestamp;
       appointment.status = 'rescheduled';
       
-      await appointmentRepo.save(appointment);
+      await this.appointmentRepo.save(appointment);
       
       rescheduledAppointments.push({
         appointmentId: appointment.id,
-        patientName: appointment.patient?.user?.name || 'Unknown',
+        patientName: appointment.patient?.id || 'Unknown',
         oldTime: oldTime,
         newTime: `${newSlot.startTime}-${newSlot.endTime}`
       });
@@ -321,17 +330,18 @@ export class ElasticScheduleService {
     // Handle appointments that couldn't fit in the new schedule
     for (let i = canFitInSlots; i < appointmentsToReschedule.length; i++) {
       const appointment = appointmentsToReschedule[i];
-      const oldTime = `${appointment.startTime.toTimeString().substring(0, 5)}-${appointment.endTime.toTimeString().substring(0, 5)}`;
+      const oldTime = appointment.startTime && appointment.endTime ? 
+        `${appointment.startTime.toISOString().substring(11, 16)}-${appointment.endTime.toISOString().substring(11, 16)}` : 
+        'Unknown';
       
       // Cancel the appointment and notify patient
       appointment.status = 'cancelled';
-      appointment.cancellationReason = 'Doctor schedule updated - insufficient slots available';
       
-      await appointmentRepo.save(appointment);
+      await this.appointmentRepo.save(appointment);
       
       notifiedPatients.push({
         appointmentId: appointment.id,
-        patientName: appointment.patient?.user?.name || 'Unknown',
+        patientName: appointment.patient?.id || 'Unknown',
         oldTime: oldTime,
         reason: 'Schedule updated with fewer slots available. Please book a new appointment for afternoon, evening, or next day.'
       });
