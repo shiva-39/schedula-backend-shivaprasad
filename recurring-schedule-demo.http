@@ -1,0 +1,649 @@
+### ===============================================
+### 🎬 RECURRING SCHEDULE DEMO - SCREEN SHARE READY
+### Date: July 31, 2025 (Live Demo Version)
+### Time: Current time (Safe for 2-hour advance booking)
+### Appointments scheduled for: 15:00-19:00 (3+ hours from now)
+### 
+### 🐛 BUG FIX: Fixed 2-hour advance booking validation
+### - Previously: Could bypass restriction on first attempt
+### - Now: Properly validates against NEW startTime in update requests
+### 
+### 🎥 SCREEN SHARE: Fresh credentials for live demonstration (v9)
+### ===============================================
+
+@baseUrl = http://localhost:3000
+
+# Auto-extracted variables from responses
+@doctorToken = {{loginDoctor.response.body.access_token}}
+@patientToken = {{loginPatient.response.body.access_token}}
+@patient2Token = {{loginPatient2.response.body.access_token}}
+@patient3Token = {{loginPatient3.response.body.access_token}}
+@patient4Token = {{loginPatient4.response.body.access_token}}
+@patient5Token = {{loginPatient5.response.body.access_token}}
+@doctorId = {{loginDoctor.response.body.entityId}}
+@patientId = {{loginPatient.response.body.entityId}}
+@patient2Id = {{loginPatient2.response.body.entityId}}
+@patient3Id = {{loginPatient3.response.body.entityId}}
+@patient4Id = {{loginPatient4.response.body.entityId}}
+@patient5Id = {{loginPatient5.response.body.entityId}}
+
+### ===============================================
+### 🚀 STEP 1: REGISTER DOCTOR
+### ===============================================
+
+# @name registerDoctor
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "dr.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!",
+  "name": "Dr. Maya ScheduleDemo",
+  "specialization": "Primary Care",
+  "yearsExperience": 18
+}
+
+### ===============================================
+### 🚀 STEP 2: REGISTER PATIENT
+### ===============================================
+
+# @name registerPatient
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient1.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!",
+  "name": "Nathan Clark",
+  "age": 24,
+  "gender": "male",
+  "phoneNumber": "+1555888001"
+}
+
+### ===============================================
+### 🚀 STEP 2B: REGISTER PATIENT 2
+### ===============================================
+
+# @name registerPatient2
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient2.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!",
+  "name": "Isabella Wright",
+  "age": 29,
+  "gender": "female",
+  "phoneNumber": "+1555888002"
+}
+
+### ===============================================
+### 🚀 STEP 2C: REGISTER PATIENT 3
+### ===============================================
+
+# @name registerPatient3
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient3.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!",
+  "name": "Oliver Garcia",
+  "age": 37,
+  "gender": "male",
+  "phoneNumber": "+1555888003"
+}
+
+### ===============================================
+### 🚀 STEP 2D: REGISTER PATIENT 4
+### ===============================================
+
+# @name registerPatient4
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient4.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!",
+  "name": "Sophia Lewis",
+  "age": 32,
+  "gender": "female",
+  "phoneNumber": "+1555888004"
+}
+
+### ===============================================
+### 🚀 STEP 2E: REGISTER PATIENT 5
+### ===============================================
+
+# @name registerPatient5
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "patient5.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!",
+  "name": "Ethan Rodriguez",
+  "age": 28,
+  "gender": "male",
+  "phoneNumber": "+1555888005"
+}
+
+### ===============================================
+### 🔐 STEP 3: LOGIN DOCTOR
+### ===============================================
+
+# @name loginDoctor
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "dr.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!"
+}
+
+### ===============================================
+### 🔐 STEP 4: LOGIN PATIENT
+### ===============================================
+
+# @name loginPatient
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient1.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!"
+}
+
+### ===============================================
+### 🔐 STEP 4B: LOGIN PATIENT 2
+### ===============================================
+
+# @name loginPatient2
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient2.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!"
+}
+
+### ===============================================
+### 🔐 STEP 4C: LOGIN PATIENT 3
+### ===============================================
+
+# @name loginPatient3
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient3.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!"
+}
+
+### ===============================================
+### 🔐 STEP 4D: LOGIN PATIENT 4
+### ===============================================
+
+# @name loginPatient4
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient4.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!"
+}
+
+### ===============================================
+### 🔐 STEP 4E: LOGIN PATIENT 5
+### ===============================================
+
+# @name loginPatient5
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "patient5.liveshare.jul31.v9@schedula.com",
+  "password": "LiveShare2025!"
+}
+
+### ===============================================
+### 🔁 STEP 5: CREATE RECURRING SCHEDULE
+### ===============================================
+
+# @name createRecurringSchedule
+# Doctor creates a recurring schedule that repeats weekly
+# Monday-Friday, 3 PM to 7 PM, 30-minute slots with 5-minute buffer
+# Schedule starts from 3:00 PM to ensure 2-hour advance booking rule works properly
+# Current time: afternoon, so 3:00 PM start is safely beyond 2-hour restriction
+POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "name": "DEMO: Live Share Demo Jul 31",
+  "startTime": "15:00",
+  "endTime": "19:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 12,
+  "daysOfWeek": [1, 2, 3, 4, 5],
+  "weeksAhead": 4,
+  "allowOverrides": true,
+  "autoGenerate": true
+}
+
+### ===============================================
+### 📅 STEP 6: DISPLAY WEEKLY SLOTS FROM RECURRING TEMPLATE
+### ===============================================
+
+# View available slots for today (Thursday, July 31st, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-31
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Friday (August 1st, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-08-01
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Monday (August 4th, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-08-04
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Tuesday (August 5th, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-08-05
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View available slots for Friday (January 3rd, 2025)
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-01-03
+Authorization: Bearer {{patientToken}}
+
+### ===============================================
+### 📝 STEP 7: MULTIPLE PATIENTS BOOK DIFFERENT SLOTS
+### ===============================================
+
+# @name bookAppointment1
+# Patient 1 (Nathan Clark) books the 15:00-15:30 slot
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createRecurringSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "15:00",
+  "endTime": "15:30"
+}
+
+###
+
+# @name bookAppointment2
+# Patient 2 (Isabella Wright) books the 15:35-16:05 slot (standard slot boundary)
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient2Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createRecurringSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "15:35",
+  "endTime": "16:05"
+}
+
+###
+
+# @name bookAppointment3
+# Patient 3 (Oliver Garcia) books the 16:10-16:40 slot (standard slot boundary)
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient3Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createRecurringSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "16:10",
+  "endTime": "16:40"
+}
+
+###
+
+# @name bookAppointment4
+# Patient 4 (Sophia Lewis) books the 16:45-17:15 slot (standard slot boundary)
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient4Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createRecurringSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "16:45",
+  "endTime": "17:15"
+}
+
+###
+
+# @name bookAppointment5
+# Patient 5 (Ethan Rodriguez) books the 17:20-17:50 slot (standard slot boundary)
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient5Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createRecurringSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "17:20",
+  "endTime": "17:50"
+}
+
+### ===============================================
+### 📅 STEP 8: VIEW ALL PATIENT APPOINTMENTS
+### ===============================================
+
+# View Patient 1's appointments (Emily Cooper - 15:00-15:30)
+GET {{baseUrl}}/api/appointments/patient/{{patientId}}
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View Patient 2's appointments (Michael Torres - 15:35-16:05)
+GET {{baseUrl}}/api/appointments/patient/{{patient2Id}}
+Authorization: Bearer {{patient2Token}}
+
+###
+
+# View Patient 3's appointments (Sarah Davis - 16:10-16:40)
+GET {{baseUrl}}/api/appointments/patient/{{patient3Id}}
+Authorization: Bearer {{patient3Token}}
+
+###
+
+# View Patient 4's appointments (David Miller - 16:45-17:15)
+GET {{baseUrl}}/api/appointments/patient/{{patient4Id}}
+Authorization: Bearer {{patient4Token}}
+
+###
+
+# View Patient 5's appointments (Rachel Brown - 17:20-17:50)
+GET {{baseUrl}}/api/appointments/patient/{{patient5Id}}
+Authorization: Bearer {{patient5Token}}
+
+### ===============================================
+### 🔧 STEP 9: UPDATE TODAY'S SCHEDULE (DAY-SPECIFIC OVERRIDE)
+### ===============================================
+
+# @name createElasticSchedule
+# Doctor creates a day-specific override for ONLY Monday, December 30th
+# Change hours from 15:00-19:00 to 16:00-18:30 for TODAY ONLY
+# This will affect appointments before 16:00:
+# - Patient 1 (15:00-15:30) - needs rescheduling
+# - Patient 2 (15:35-16:05) - needs rescheduling  
+# - Patient 3 (16:10-16:40) - fits in new schedule
+# - Patient 4 (16:45-17:15) - fits in new schedule
+# - Patient 5 (17:20-17:50) - fits in new schedule
+# adjustExisting=true will automatically reschedule conflicting appointments
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-07-31",
+  "startTime": "16:00",
+  "endTime": "18:30",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 5,
+  "adjustExisting": true
+}
+
+### ===============================================
+### 📅 STEP 10: DISPLAY UPDATED SLOTS AFTER SCHEDULE CHANGE
+### ===============================================
+
+# View available slots for today after the schedule update
+# Should now show slots from 16:00-18:30 instead of 13:00-19:00
+# This demonstrates the day-specific override in effect
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-31
+Authorization: Bearer {{patientToken}}
+
+### ===============================================
+### 🔄 STEP 11: VERIFY AUTOMATIC RESCHEDULING FOR ALL PATIENTS
+### ===============================================
+
+# View Patient 1's appointments after automatic rescheduling
+# Original: 13:00-13:30 → Should be rescheduled to 16:00-16:30
+GET {{baseUrl}}/api/appointments/patient/{{patientId}}
+Authorization: Bearer {{patientToken}}
+
+###
+
+# View Patient 2's appointments after automatic rescheduling
+# Original: 15:35-16:05 → Should be rescheduled to 16:35-17:05
+GET {{baseUrl}}/api/appointments/patient/{{patient2Id}}
+Authorization: Bearer {{patient2Token}}
+
+###
+
+# View Patient 3's appointments after automatic rescheduling
+# Original: 16:10-16:40 → Should fit in new schedule (no change needed)
+GET {{baseUrl}}/api/appointments/patient/{{patient3Id}}
+Authorization: Bearer {{patient3Token}}
+
+###
+
+# View Patient 4's appointments after automatic rescheduling
+# Original: 16:45-17:15 → Should fit in new schedule (no change needed)
+GET {{baseUrl}}/api/appointments/patient/{{patient4Id}}
+Authorization: Bearer {{patient4Token}}
+
+###
+
+# View Patient 5's appointments after automatic rescheduling
+# Original: 17:20-17:50 → Should fit in new schedule (no change needed)
+GET {{baseUrl}}/api/appointments/patient/{{patient5Id}}
+Authorization: Bearer {{patient5Token}}
+
+### ===============================================
+### ❌ STEP 12: DEMONSTRATE 2-HOUR ADVANCE BOOKING RESTRICTION (FIXED)
+### ===============================================
+
+# Try to update the recurring template with regenerateFuture=true 
+# This should NOW PROPERLY FAIL with 2-hour restriction on FIRST attempt
+# 
+# BUG FIX: Previously this would succeed on first click and fail on second click
+# NOW: Validates against the NEW startTime (11:00) instead of OLD startTime (15:00)
+#
+# Current time: ~11:07 AM
+# Attempting to set startTime: 11:00 AM  
+# Time difference: -7 minutes (NEGATIVE = past time!)
+# Required: +120 minutes minimum
+# Result: Should FAIL immediately with proper error message
+
+# @name updateRecurringScheduleRestricted
+PATCH {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{createRecurringSchedule.response.body.id}}
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "11:00",
+  "endTime": "19:00",
+  "regenerateFuture": true
+}
+
+###
+
+# ✅ STEP 12B: DEMONSTRATE VALID UPDATE (SHOULD SUCCEED)
+# Now try with a future time that satisfies the 2-hour rule
+# Current time: ~11:07 AM
+# Setting startTime: 14:00 (2:00 PM)
+# Time difference: ~173 minutes (well above 120 minute requirement)
+# Result: Should SUCCEED
+
+# @name updateRecurringScheduleValid  
+PATCH {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules/{{createRecurringSchedule.response.body.id}}
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "startTime": "14:00",
+  "endTime": "19:00",
+  "regenerateFuture": true
+}
+
+###
+
+# Verify the valid update worked - should show new 14:00-19:00 schedule
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-31
+Authorization: Bearer {{patientToken}}
+
+### ===============================================
+### 📝 BUG FIX DOCUMENTATION
+### ===============================================
+
+# 🐛 ORIGINAL BUG: 2-Hour Validation Bypass
+# Problem: validateTemplateUpdateRestrictions() used template.startTime (OLD time)
+#          instead of dto.startTime (NEW time) for validation
+#
+# Scenario:
+# 1. Template starts at 15:00 (safe - more than 2 hours from 11:07 AM)
+# 2. Update request: change to 11:00 (unsafe - less than 2 hours)  
+# 3. Validation checked: 15:00 vs 11:07 AM = PASS ✅ (incorrect)
+# 4. Schedule updated to: 11:00 ❌ (bypassed restriction)
+# 5. Next attempt checked: 11:00 vs 11:07 AM = FAIL ❌ (too late!)
+#
+# ✅ FIX APPLIED:
+# - Modified validateTemplateUpdateRestrictions() to accept dto parameter
+# - Changed validation to use: dto?.startTime || template.startTime
+# - Now validates against the NEW time being requested
+# - Restriction properly enforced on FIRST attempt
+#
+# 📋 FILES CHANGED:
+# - src/elastic-schedule/recurring-schedule.service.ts (lines 486-500, 99)
+# - Added dto parameter and NEW startTime validation logic
+
+### ===============================================
+### ❌ STEP 13: DEMONSTRATE CONFLICT PREVENTION
+### ===============================================
+
+# First, let's verify what elastic schedule was actually created
+GET {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule/{{createElasticSchedule.response.body.id}}
+Authorization: Bearer {{doctorToken}}
+
+###
+
+# Let's also check all current appointments for this doctor on this date
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+###
+
+# Test 1: Try to book an already taken slot
+# This should FAIL with ConflictException - Patient 2 tries to book Patient 1's rescheduled slot
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient3Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "elasticScheduleId": "{{createElasticSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "16:00",
+  "endTime": "16:30"
+}
+
+###
+
+# Test 2: Try to book outside doctor's available hours
+# This should FAIL - attempt to book at 14:00 when doctor is only available 16:00-18:30
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient3Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "elasticScheduleId": "{{createElasticSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "14:00",
+  "endTime": "14:30"
+}
+
+###
+
+# Test 3: Try to book after doctor's end time
+# This should FAIL - attempt to book at 19:00 when doctor ends at 18:30
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient4Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "elasticScheduleId": "{{createElasticSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "19:00",
+  "endTime": "19:30"
+}
+
+###
+
+# Test 4: Try to book with a recurring schedule that conflicts
+# This should FAIL - Patient 1 tries to book the same slot twice using recurring schedule
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createRecurringSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "16:00",
+  "endTime": "16:30"
+}
+
+###
+
+# 🔄 BONUS: DEMONSTRATE CANCELLED APPOINTMENTS FREE UP SLOTS
+# Let's use Patient 2 instead - they have a cleaner appointment status
+# First, let's check Patient 2's current appointment ID after rescheduling
+GET {{baseUrl}}/api/appointments/patient/{{patient2Id}}
+Authorization: Bearer {{patient2Token}}
+
+###
+
+# Cancel Patient 2's appointment (16:35-17:05 slot)
+# From debug logs: 21eb3d69-66e8-42d7-82db-39da599c12de with status 'rescheduled'
+DELETE {{baseUrl}}/api/appointments/21eb3d69-66e8-42d7-82db-39da599c12de
+Authorization: Bearer {{patient2Token}}
+
+###
+
+# Check available slots after Patient 2 cancelled - should now show 16:35-17:05 as available
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-07-31
+Authorization: Bearer {{patientToken}}
+
+###
+
+# Test 5: Try to book the now-available slot after cancellation
+# This should SUCCEED - Patient 3 can now book the slot that Patient 2 cancelled (16:35-17:05)
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patient3Token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "elasticScheduleId": "{{createElasticSchedule.response.body.id}}",
+  "date": "2025-07-31",
+  "startTime": "16:35",
+  "endTime": "17:05"
+}
+
+

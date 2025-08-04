@@ -27,6 +27,7 @@ export class ElasticScheduleService {
     private readonly dataSource: DataSource,
   ) {}
 
+  // Create day-specific override schedule
   async createSchedule(doctorId: string, dto: CreateElasticScheduleDto, user: any) {
     const doctor = await this.doctorRepo.findOne({
       where: { id: doctorId },
@@ -61,6 +62,7 @@ export class ElasticScheduleService {
     return savedSchedule;
   }
 
+  // Get all elastic schedules for a doctor
   async getSchedulesByDoctor(doctorId: string) {
     return await this.elasticScheduleRepo.find({
       where: { doctor: { id: doctorId } },
@@ -68,6 +70,7 @@ export class ElasticScheduleService {
     });
   }
 
+  // Get a specific elastic schedule by ID
   async getScheduleById(doctorId: string, scheduleId: string) {
     const schedule = await this.elasticScheduleRepo.findOne({
       where: {
@@ -83,6 +86,7 @@ export class ElasticScheduleService {
     return schedule;
   }
 
+  // Update elastic schedule (with optional rescheduling)
   async updateSchedule(doctorId: string, scheduleId: string, dto: UpdateElasticScheduleDto, user: any) {
     const schedule = await this.elasticScheduleRepo.findOne({
       where: {
@@ -116,6 +120,7 @@ export class ElasticScheduleService {
     return updatedSchedule;
   }
 
+  // Delete elastic schedule
   async deleteSchedule(doctorId: string, scheduleId: string, user: any) {
     const schedule = await this.elasticScheduleRepo.findOne({
       where: {
@@ -137,6 +142,7 @@ export class ElasticScheduleService {
     return { message: 'Elastic schedule deleted successfully' };
   }
 
+  // Get all elastic slots for a doctor on a date
   async getElasticSlots(doctorId: string, date: string) {
     const schedules = await this.elasticScheduleRepo.find({
       where: {
@@ -157,6 +163,7 @@ export class ElasticScheduleService {
     };
   }
 
+  // Calculate available slots for a doctor on a date
   async getAvailableSlots(doctorId: string, date: string) {
     // Check for elastic schedule first - prioritize manual overrides (null recurringTemplateId) over auto-generated ones
     const elasticSchedules = await this.elasticScheduleRepo.find({
@@ -253,108 +260,105 @@ export class ElasticScheduleService {
     };
   }
 
+  // Intelligent rescheduling engine (preserves fitting appointments, handles overflow)
   async rescheduleExistingAppointments(doctorId: string, date: string, newSchedule: any) {
     // Get all appointments for this doctor on this date
     const appointments = await this.appointmentRepo.find({
       where: {
         doctor: { id: doctorId },
         date: date,
-        status: 'scheduled'
+        status: In(['scheduled', 'rescheduled']) // Include both statuses
       },
-      relations: ['patient', 'patient.user']
+      relations: ['patient', 'patient.user'],
+      order: { startTime: 'ASC' } // Sort by start time for FIFO processing
     });
 
     if (appointments.length === 0) {
       return { message: 'No appointments to reschedule', rescheduled: [] };
     }
 
-    // Generate available slots in the new schedule
+    // Helper functions
     const toMinutes = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-    const fromMinutes = (m: number) => { 
-      const h = Math.floor(m / 60).toString().padStart(2, '0'); 
-      const min = (m % 60).toString().padStart(2, '0'); 
-      return `${h}:${min}`; 
-    };
+    const scheduleStartMin = toMinutes(newSchedule.startTime);
+    const scheduleEndMin = toMinutes(newSchedule.endTime);
 
-    const startMin = toMinutes(newSchedule.startTime);
-    const endMin = toMinutes(newSchedule.endTime);
-    const slotDuration = newSchedule.slotDuration;
-    const buffer = newSchedule.bufferTime || 0;
+    // Categorize appointments: those that fit vs. those that don't
+    const appointmentsThatFit: typeof appointments = [];
+    const appointmentsThatDontFit: typeof appointments = [];
 
-    // Generate all possible slots
-    const availableSlots: Array<{ startTime: string; endTime: string }> = [];
-    let current = startMin;
-    while (current + slotDuration <= endMin) {
-      const slotStart = fromMinutes(current);
-      const slotEnd = fromMinutes(current + slotDuration);
-      availableSlots.push({ startTime: slotStart, endTime: slotEnd });
-      current += slotDuration + buffer;
+    for (const appointment of appointments) {
+      if (!appointment.startTime || !appointment.endTime) {
+        appointmentsThatDontFit.push(appointment);
+        continue;
+      }
+
+      const apptStart = appointment.startTime.toISOString().substring(11, 16);
+      const apptEnd = appointment.endTime.toISOString().substring(11, 16);
+      const apptStartMin = toMinutes(apptStart);
+      const apptEndMin = toMinutes(apptEnd);
+
+      // Check if appointment fits within new time boundaries
+      const fitsInTimeRange = apptStartMin >= scheduleStartMin && apptEndMin <= scheduleEndMin;
+      
+      if (fitsInTimeRange) {
+        appointmentsThatFit.push(appointment);
+      } else {
+        appointmentsThatDontFit.push(appointment);
+      }
     }
 
-    // Check if we have enough slots for all appointments
-    const appointmentsToReschedule = appointments;
-    const canFitInSlots = Math.min(appointmentsToReschedule.length, availableSlots.length);
-    
+    // Apply capacity constraints: if more appointments fit than maxAppointments allows
+    const maxAppointments = newSchedule.maxAppointments || appointmentsThatFit.length;
+    const appointmentsToKeep = appointmentsThatFit.slice(0, maxAppointments);
+    const appointmentsExceedingCapacity = appointmentsThatFit.slice(maxAppointments);
+
+    // Combine all appointments that need to be rescheduled/cancelled
+    const appointmentsToHandle = [...appointmentsThatDontFit, ...appointmentsExceedingCapacity];
+
     const rescheduledAppointments: Array<{ appointmentId: string; patientName: string; oldTime: string; newTime: string }> = [];
-    const notifiedPatients: Array<{ appointmentId: string; patientName: string; oldTime: string; reason: string }> = [];
+    const cancelledAppointments: Array<{ appointmentId: string; patientName: string; oldTime: string; reason: string }> = [];
 
-    // Reschedule appointments that can fit in available slots
-    for (let i = 0; i < canFitInSlots; i++) {
-      const appointment = appointmentsToReschedule[i];
-      const newSlot = availableSlots[i];
-      
-      // Store old time for tracking
+    // Process appointments that need to be handled
+    for (const appointment of appointmentsToHandle) {
       const oldTime = appointment.startTime && appointment.endTime ? 
         `${appointment.startTime.toISOString().substring(11, 16)}-${appointment.endTime.toISOString().substring(11, 16)}` : 
         'Unknown';
-      
-      // Update appointment times
-      const appointmentDate = date;
-      const newStartTimestamp = new Date(`${appointmentDate}T${newSlot.startTime}:00.000Z`);
-      const newEndTimestamp = new Date(`${appointmentDate}T${newSlot.endTime}:00.000Z`);
-      
-      appointment.startTime = newStartTimestamp;
-      appointment.endTime = newEndTimestamp;
-      appointment.status = 'rescheduled';
-      
-      await this.appointmentRepo.save(appointment);
-      
-      rescheduledAppointments.push({
-        appointmentId: appointment.id,
-        patientName: appointment.patient?.id || 'Unknown',
-        oldTime: oldTime,
-        newTime: `${newSlot.startTime}-${newSlot.endTime}`
-      });
-    }
 
-    // Handle appointments that couldn't fit in the new schedule
-    for (let i = canFitInSlots; i < appointmentsToReschedule.length; i++) {
-      const appointment = appointmentsToReschedule[i];
-      const oldTime = appointment.startTime && appointment.endTime ? 
-        `${appointment.startTime.toISOString().substring(11, 16)}-${appointment.endTime.toISOString().substring(11, 16)}` : 
-        'Unknown';
-      
-      // Cancel the appointment and notify patient
+      // For now, we'll cancel them (overflow detection will handle redistribution)
+      // This is better than trying to fit them in wrong slots
       appointment.status = 'cancelled';
-      
       await this.appointmentRepo.save(appointment);
-      
-      notifiedPatients.push({
+
+      cancelledAppointments.push({
         appointmentId: appointment.id,
-        patientName: appointment.patient?.id || 'Unknown',
+        patientName: appointment.patient?.name || 'Unknown',
         oldTime: oldTime,
-        reason: 'Schedule updated with fewer slots available. Please book a new appointment for afternoon, evening, or next day.'
+        reason: appointmentsThatDontFit.includes(appointment) 
+          ? 'Appointment outside new time boundaries'
+          : 'Appointment exceeds capacity limit'
       });
     }
+
+    // Log what we preserved
+    const preservedAppointments = appointmentsToKeep.map(appt => ({
+      appointmentId: appt.id,
+      patientName: appt.patient?.name || 'Unknown',
+      time: appt.startTime && appt.endTime ? 
+        `${appt.startTime.toISOString().substring(11, 16)}-${appt.endTime.toISOString().substring(11, 16)}` : 
+        'Unknown',
+      reason: 'Fits within new schedule constraints'
+    }));
 
     return {
-      message: `Successfully rescheduled ${rescheduledAppointments.length} appointments. ${notifiedPatients.length} patients notified to book new slots.`,
-      rescheduled: rescheduledAppointments,
-      notifiedPatients: notifiedPatients,
+      message: `Schedule adjustment completed. ${preservedAppointments.length} appointments preserved, ${cancelledAppointments.length} appointments marked for overflow redistribution.`,
+      preserved: preservedAppointments,
+      cancelled: cancelledAppointments,
+      rescheduled: rescheduledAppointments, // Empty for now - overflow logic handles redistribution
       summary: {
-        totalAppointments: appointmentsToReschedule.length,
-        successfullyRescheduled: rescheduledAppointments.length,
-        needsRebooking: notifiedPatients.length
+        totalAppointments: appointments.length,
+        preserved: preservedAppointments.length,
+        cancelled: cancelledAppointments.length,
+        maxCapacity: maxAppointments
       }
     };
   }

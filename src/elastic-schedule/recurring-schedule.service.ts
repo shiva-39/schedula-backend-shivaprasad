@@ -31,9 +31,7 @@ export class RecurringScheduleService {
     private readonly elasticScheduleRepo: Repository<ElasticScheduleEntity>,
   ) {}
 
-  /**
-   * Create a new recurring schedule template
-   */
+  // --- TEMPLATE CREATION LOGIC ---
   async createRecurringSchedule(
     doctorId: string,
     dto: CreateRecurringScheduleDto,
@@ -54,7 +52,7 @@ export class RecurringScheduleService {
 
     const saved = await this.recurringScheduleRepo.save(recurringSchedule);
 
-    // Auto-generate initial schedules if enabled
+    // --- AUTO-GENERATE INITIAL SCHEDULES IF ENABLED ---
     if (saved.autoGenerate) {
       await this.generateSchedulesFromTemplate(saved.id, {});
     }
@@ -62,9 +60,7 @@ export class RecurringScheduleService {
     return saved;
   }
 
-  /**
-   * Get all recurring schedules for a doctor
-   */
+  // --- GET ALL RECURRING SCHEDULES FOR A DOCTOR ---
   async getRecurringSchedules(doctorId: string) {
     return this.recurringScheduleRepo.find({
       where: { doctor: { id: doctorId } },
@@ -72,9 +68,7 @@ export class RecurringScheduleService {
     });
   }
 
-  /**
-   * Get a specific recurring schedule
-   */
+  // --- GET A SPECIFIC RECURRING SCHEDULE ---
   async getRecurringSchedule(doctorId: string, recurringId: string) {
     const schedule = await this.recurringScheduleRepo.findOne({
       where: { id: recurringId, doctor: { id: doctorId } },
@@ -85,9 +79,7 @@ export class RecurringScheduleService {
     return schedule;
   }
 
-  /**
-   * Update a recurring schedule template
-   */
+  // --- UPDATE RECURRING SCHEDULE TEMPLATE LOGIC ---
   async updateRecurringSchedule(
     doctorId: string,
     recurringId: string,
@@ -95,12 +87,12 @@ export class RecurringScheduleService {
   ) {
     const schedule = await this.getRecurringSchedule(doctorId, recurringId);
 
-    // Validate time restrictions if regenerating future schedules (unless bypassed)
+    // --- VALIDATE TIME RESTRICTIONS FOR REGENERATION (EDGE CASE) ---
     if (dto.regenerateFuture && !dto.bypassTimeRestrictions) {
-      this.validateTemplateUpdateRestrictions(schedule, dto.regenerateFuture);
+      this.validateTemplateUpdateRestrictions(schedule, dto.regenerateFuture, dto);
     }
 
-    // Update fields
+    // --- UPDATE FIELDS ---
     if (dto.name !== undefined) schedule.name = dto.name;
     if (dto.startTime !== undefined) schedule.startTime = dto.startTime;
     if (dto.endTime !== undefined) schedule.endTime = dto.endTime;
@@ -119,7 +111,7 @@ export class RecurringScheduleService {
 
     const updated = await this.recurringScheduleRepo.save(schedule);
 
-    // Regenerate future schedules if requested
+    // --- REGENERATE FUTURE SCHEDULES IF REQUESTED ---
     if (dto.regenerateFuture) {
       await this.regenerateFutureSchedules(updated.id);
     }
@@ -127,9 +119,7 @@ export class RecurringScheduleService {
     return updated;
   }
 
-  /**
-   * Delete a recurring schedule template
-   */
+  // --- DELETE RECURRING SCHEDULE TEMPLATE LOGIC ---
   async deleteRecurringSchedule(
     doctorId: string,
     recurringId: string,
@@ -138,7 +128,7 @@ export class RecurringScheduleService {
     const schedule = await this.getRecurringSchedule(doctorId, recurringId);
 
     if (deleteFutureSchedules) {
-      // Delete all future generated schedules from this template
+      // --- DELETE ALL FUTURE GENERATED SCHEDULES FROM THIS TEMPLATE ---
       const today = getCurrentDate();
       const deleteFromDate = schedule.lastGeneratedDate || today;
       
@@ -156,9 +146,7 @@ export class RecurringScheduleService {
     return { message: 'Recurring schedule deleted successfully' };
   }
 
-  /**
-   * Generate daily schedules from a recurring template
-   */
+  // --- GENERATE DAILY SCHEDULES FROM TEMPLATE LOGIC ---
   async generateSchedulesFromTemplate(
     recurringId: string,
     dto: GenerateSchedulesDto,
@@ -188,7 +176,7 @@ export class RecurringScheduleService {
     const generatedSchedules: ElasticScheduleEntity[] = [];
     const skippedDates: string[] = [];
 
-    // Iterate through each day in the range
+    // --- ITERATE THROUGH EACH DAY IN THE RANGE ---
     for (
       let currentDate = new Date(startDate);
       currentDate <= endDate;
@@ -196,14 +184,14 @@ export class RecurringScheduleService {
     ) {
       const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
-      // Check if this day is included in the template
+      // --- CHECK IF THIS DAY IS INCLUDED IN THE TEMPLATE ---
       if (!template.daysOfWeek.includes(dayOfWeek)) {
         continue;
       }
 
       const dateString = formatDate(currentDate);
 
-      // Check if schedule already exists for this date
+      // --- CHECK IF SCHEDULE ALREADY EXISTS FOR THIS DATE ---
       const existingSchedule = await this.elasticScheduleRepo.findOne({
         where: {
           doctor: { id: template.doctor.id },
@@ -216,11 +204,11 @@ export class RecurringScheduleService {
         continue;
       }
 
-      // Create or update the daily schedule
+      // --- CREATE OR UPDATE THE DAILY SCHEDULE ---
       let dailySchedule: ElasticScheduleEntity;
 
       if (existingSchedule && dto.overrideExisting) {
-        // Update existing schedule with template values
+        // --- UPDATE EXISTING SCHEDULE WITH TEMPLATE VALUES ---
         existingSchedule.startTime = template.startTime;
         existingSchedule.endTime = template.endTime;
         existingSchedule.slotDuration = template.slotDuration;
@@ -230,7 +218,7 @@ export class RecurringScheduleService {
         existingSchedule.isOverride = false; // Reset override flag
         dailySchedule = await this.elasticScheduleRepo.save(existingSchedule);
       } else {
-        // Create new schedule
+        // --- CREATE NEW SCHEDULE ---
         dailySchedule = this.elasticScheduleRepo.create({
           doctor: template.doctor,
           date: dateString,
@@ -248,7 +236,7 @@ export class RecurringScheduleService {
       generatedSchedules.push(dailySchedule);
     }
 
-    // Update the last generated date
+    // --- UPDATE THE LAST GENERATED DATE ---
     template.lastGeneratedDate = formatDate(endDate);
     await this.recurringScheduleRepo.save(template);
 
@@ -261,9 +249,7 @@ export class RecurringScheduleService {
     };
   }
 
-  /**
-   * Regenerate future schedules from today onwards
-   */
+  // --- REGENERATE FUTURE SCHEDULES FROM TODAY LOGIC ---
   async regenerateFutureSchedules(recurringId: string) {
     const template = await this.recurringScheduleRepo.findOne({
       where: { id: recurringId },
@@ -276,7 +262,7 @@ export class RecurringScheduleService {
 
     const today = getCurrentDate();
 
-    // Delete future schedules that were generated from this template
+    // --- DELETE FUTURE SCHEDULES THAT WERE GENERATED FROM THIS TEMPLATE ---
     await this.elasticScheduleRepo
       .createQueryBuilder()
       .delete()
@@ -292,9 +278,7 @@ export class RecurringScheduleService {
     });
   }
 
-  /**
-   * Get upcoming schedules generated from a template
-   */
+  // --- GET UPCOMING SCHEDULES FROM TEMPLATE LOGIC ---
   async getGeneratedSchedules(
     doctorId: string,
     recurringId: string,
@@ -317,7 +301,7 @@ export class RecurringScheduleService {
       .orderBy('schedule.date', 'ASC')
       .getMany();
 
-    // Filter schedules that match this template's days of week
+    // --- FILTER SCHEDULES THAT MATCH THIS TEMPLATE'S DAYS OF WEEK ---
     const matchingSchedules = schedules.filter((schedule) => {
       const scheduleDate = new Date(schedule.date);
       const dayOfWeek = scheduleDate.getDay();
@@ -331,9 +315,7 @@ export class RecurringScheduleService {
     };
   }
 
-  /**
-   * Create a one-time override for a specific date
-   */
+  // --- CREATE ONE-TIME OVERRIDE FOR A SPECIFIC DATE LOGIC ---
   async createDateOverride(
     doctorId: string,
     recurringId: string,
@@ -349,12 +331,12 @@ export class RecurringScheduleService {
       );
     }
 
-    // Validate time restrictions for date overrides unless bypassed
+    // --- VALIDATE TIME RESTRICTIONS FOR DATE OVERRIDES (EDGE CASE) ---
     if (!bypassTimeRestrictions) {
       this.validateOverrideTimeRestrictions(date, overrides, template);
     }
 
-    // Check if the date matches the template's days of week
+    // --- CHECK IF THE DATE MATCHES THE TEMPLATE'S DAYS OF WEEK ---
     const targetDate = new Date(date);
     const dayOfWeek = targetDate.getDay();
 
@@ -364,7 +346,7 @@ export class RecurringScheduleService {
       );
     }
 
-    // Find existing schedule for this date
+    // --- FIND EXISTING SCHEDULE FOR THIS DATE ---
     let schedule = await this.elasticScheduleRepo.findOne({
       where: {
         doctor: { id: doctorId },
@@ -373,7 +355,7 @@ export class RecurringScheduleService {
     });
 
     if (schedule) {
-      // Update existing schedule with overrides
+      // --- UPDATE EXISTING SCHEDULE WITH OVERRIDES ---
       Object.assign(schedule, overrides);
       schedule.isOverride = true;
       if (reason) {
@@ -381,7 +363,7 @@ export class RecurringScheduleService {
       }
       schedule = await this.elasticScheduleRepo.save(schedule);
     } else {
-      // Create new schedule with template defaults and overrides
+      // --- CREATE NEW SCHEDULE WITH TEMPLATE DEFAULTS AND OVERRIDES ---
       schedule = this.elasticScheduleRepo.create({
         doctor: { id: doctorId } as any,
         date: date,
@@ -403,9 +385,7 @@ export class RecurringScheduleService {
     };
   }
 
-  /**
-   * Run auto-generation for all active templates (could be called by a cron job)
-   */
+  // --- AUTO-GENERATE SCHEDULES FOR ALL ACTIVE TEMPLATES LOGIC ---
   async autoGenerateAllSchedules() {
     const activeTemplates = await this.recurringScheduleRepo.find({
       where: { isActive: true, autoGenerate: true },
@@ -442,11 +422,7 @@ export class RecurringScheduleService {
     };
   }
 
-  /**
-   * Validates that date overrides comply with time restrictions
-   * - Only today or future dates can be overridden
-   * - Overrides must be at least 2 hours before session start time
-   */
+  // --- VALIDATE DATE OVERRIDE TIME RESTRICTIONS (2-HOUR RULE, FUTURE ONLY) ---
   private validateOverrideTimeRestrictions(
     date: string,
     overrides: Partial<ElasticScheduleEntity>,
@@ -454,12 +430,12 @@ export class RecurringScheduleService {
   ) {
     const today = getCurrentLocalDate(); // Use local date for business logic
 
-    // Check if trying to override past dates
+    // --- CHECK IF TRYING TO OVERRIDE PAST DATES ---
     if (date < today) {
       throw new ConflictException('Cannot create overrides for past dates');
     }
 
-    // For today's override, check 2-hour advance notice
+    // --- FOR TODAY'S OVERRIDE, CHECK 2-HOUR ADVANCE NOTICE ---
     if (date === today) {
       const currentTime = getCurrentLocalTime(); // Use local time for business logic
       const sessionStartTime = overrides.startTime || template.startTime;
@@ -480,12 +456,11 @@ export class RecurringScheduleService {
     }
   }
 
-  /**
-   * Validates that template updates affecting today's schedules comply with time restrictions
-   */
+  // --- VALIDATE TEMPLATE UPDATE TIME RESTRICTIONS (2-HOUR RULE) ---
   private validateTemplateUpdateRestrictions(
     template: RecurringScheduleEntity,
     regenerateFuture: boolean,
+    dto?: UpdateRecurringScheduleDto,
   ) {
     if (!regenerateFuture) return; // No validation needed if not regenerating
 
@@ -493,10 +468,11 @@ export class RecurringScheduleService {
     const today = getCurrentLocalDate(); // Use local date for business logic
     const currentDayOfWeek = now.getDay();
 
-    // Check if today is one of the template's active days
+    // --- CHECK IF TODAY IS ONE OF THE TEMPLATE'S ACTIVE DAYS ---
     if (template.daysOfWeek.includes(currentDayOfWeek)) {
       const currentTime = getCurrentLocalTime(); // Use local time for business logic
-      const sessionStartTime = template.startTime;
+      // --- USE NEW STARTTIME IF PROVIDED IN UPDATE, OTHERWISE USE TEMPLATE'S CURRENT STARTTIME ---
+      const sessionStartTime = dto?.startTime || template.startTime;
 
       const currentMinutes = timeToMinutes(currentTime);
       const sessionStartMinutes = timeToMinutes(sessionStartTime);
@@ -515,9 +491,7 @@ export class RecurringScheduleService {
     }
   }
 
-  /**
-   * Converts time string (HH:MM) to minutes since midnight
-   */
+  // --- CONVERTS TIME STRING (HH:MM) TO MINUTES SINCE MIDNIGHT ---
   private timeToMinutes(timeString: string): number {
     return timeToMinutes(timeString);
   }
