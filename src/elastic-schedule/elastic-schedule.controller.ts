@@ -93,4 +93,39 @@ export class ElasticScheduleController {
     
     return this.elasticScheduleService.rescheduleExistingAppointments(doctorId, body.date, newSchedule);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('shrink-schedule')
+  async shrinkSchedule(
+    @Param('id') doctorId: string,
+    @Body() body: { 
+      date: string; 
+      newStartTime: string; 
+      newEndTime: string; 
+      bufferTime?: number; 
+      maxAppointments?: number;
+    },
+    @Req() req
+  ) {
+    // Get existing appointments for this doctor and date
+    const appointments = await this.elasticScheduleService.getAppointmentsForDate(doctorId, body.date);
+    
+    if (appointments.length === 0) {
+      return {
+        message: 'No appointments found for the specified date',
+        appointments: []
+      };
+    }
+
+    // Create new schedule object for shrinking
+    const newSchedule = {
+      startTime: body.newStartTime,
+      endTime: body.newEndTime,
+      bufferTime: body.bufferTime || 5,
+      maxAppointments: body.maxAppointments
+    };
+    
+    // Apply progressive fitting algorithm with automatic overflow handling
+    return this.elasticScheduleService.handleScheduleShrinking(appointments, newSchedule, body.date);
+  }
 }

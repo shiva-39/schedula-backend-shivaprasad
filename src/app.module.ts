@@ -25,6 +25,7 @@ import { AvailabilitySlot } from './availability_slot.entity';
 import { Appointment } from './appointment.entity';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentService } from './appointment.service';
+import { NotificationService } from './notification/notification.service';
 
 @Module({
   imports: [
@@ -45,6 +46,6 @@ import { AppointmentService } from './appointment.service';
     }),
   ],
   controllers: [AppController, AuthController, DoctorController, PatientController, AvailabilityController, AppointmentController, ElasticScheduleController, RecurringScheduleController],
-  providers: [AppService, AuthService, JwtStrategy, DoctorService, PatientService, AvailabilityService, AppointmentService, ElasticScheduleService, RecurringScheduleService],
+  providers: [AppService, AuthService, JwtStrategy, DoctorService, PatientService, AvailabilityService, AppointmentService, ElasticScheduleService, RecurringScheduleService, NotificationService],
 })
 export class AppModule {}
