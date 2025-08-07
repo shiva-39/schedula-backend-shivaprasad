@@ -50,16 +50,34 @@ export class AppointmentService {
     // All cancelled/rescheduled appointments are considered overflow from shrink
     const definiteOverflow = [...cancelledAppts, ...rescheduledAppts];
 
+    console.log(`[OVERFLOW DEBUG] Elastic schedule: ${elasticSchedule.startTime}-${elasticSchedule.endTime} (${scheduleStartMin}-${scheduleEndMin} minutes)`);
+    console.log(`[OVERFLOW DEBUG] Found ${scheduledAppts.length} scheduled appointments to check for overflow`);
+
     // For scheduled appointments, check if they fit within new constraints
     const scheduledWithinTimeRange = scheduledAppts.filter(appt => {
       if (!appt.startTime || !appt.endTime) return false;
-      const apptStart = appt.startTime.toISOString().substring(11, 16);
-      const apptEnd = appt.endTime.toISOString().substring(11, 16);
-      const apptStartMin = toMinutes(apptStart);
-      const apptEndMin = toMinutes(apptEnd);
+      
+      // Convert appointment times to minutes for comparison
+      const apptStartTime = new Date(appt.startTime);
+      const apptEndTime = new Date(appt.endTime);
+      
+      const apptStartHour = apptStartTime.getUTCHours();
+      const apptStartMin = apptStartTime.getUTCMinutes();
+      const apptEndHour = apptEndTime.getUTCHours();
+      const apptEndMin = apptEndTime.getUTCMinutes();
+      
+      const apptStartTotalMin = apptStartHour * 60 + apptStartMin;
+      const apptEndTotalMin = apptEndHour * 60 + apptEndMin;
+      
       // Appointment fits if it's completely within the time boundaries
-      return apptStartMin >= scheduleStartMin && apptEndMin <= scheduleEndMin;
+      const fitsInTimeRange = apptStartTotalMin >= scheduleStartMin && apptEndTotalMin <= scheduleEndMin;
+      
+      console.log(`[OVERFLOW DEBUG] Appointment ${appt.id}: ${apptStartTotalMin}-${apptEndTotalMin} vs schedule ${scheduleStartMin}-${scheduleEndMin} = ${fitsInTimeRange ? 'FITS' : 'OVERFLOW'}`);
+      
+      return fitsInTimeRange;
     });
+
+    console.log(`[OVERFLOW DEBUG] ${scheduledWithinTimeRange.length} appointments fit within time range`);
 
     // Check capacity constraints: if we have more appointments than maxAppointments allows
     const capacityOverflow: Appointment[] = [];
@@ -67,17 +85,31 @@ export class AppointmentService {
       // Keep the first maxAppointments (by start time), mark the rest as overflow
       const excessAppointments = scheduledWithinTimeRange.slice(elasticSchedule.maxAppointments);
       capacityOverflow.push(...excessAppointments);
+      console.log(`[OVERFLOW DEBUG] Capacity overflow: ${excessAppointments.length} appointments exceed maxAppointments(${elasticSchedule.maxAppointments})`);
     }
 
     // Appointments outside time boundaries are also overflow
     const timeOverflow = scheduledAppts.filter(appt => {
       if (!appt.startTime || !appt.endTime) return false;
-      const apptStart = appt.startTime.toISOString().substring(11, 16);
-      const apptEnd = appt.endTime.toISOString().substring(11, 16);
-      const apptStartMin = toMinutes(apptStart);
-      const apptEndMin = toMinutes(apptEnd);
+      
+      // Convert appointment times to minutes for comparison
+      const apptStartTime = new Date(appt.startTime);
+      const apptEndTime = new Date(appt.endTime);
+      
+      const apptStartHour = apptStartTime.getUTCHours();
+      const apptStartMin = apptStartTime.getUTCMinutes();
+      const apptEndHour = apptEndTime.getUTCHours();
+      const apptEndMin = apptEndTime.getUTCMinutes();
+      
+      const apptStartTotalMin = apptStartHour * 60 + apptStartMin;
+      const apptEndTotalMin = apptEndHour * 60 + apptEndMin;
+      
       // Appointment is outside if it's not completely within the time boundaries
-      return apptStartMin < scheduleStartMin || apptEndMin > scheduleEndMin;
+      const isOutside = apptStartTotalMin < scheduleStartMin || apptEndTotalMin > scheduleEndMin;
+      
+      console.log(`[OVERFLOW DEBUG] Time check appointment ${appt.id}: ${apptStartTotalMin}-${apptEndTotalMin} vs schedule ${scheduleStartMin}-${scheduleEndMin} = ${isOutside ? 'OUTSIDE' : 'INSIDE'}`);
+      
+      return isOutside;
     });
 
     // Combine all overflow appointments

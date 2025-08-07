@@ -1,12 +1,16 @@
 
 
-import { Controller, Post, Patch, Delete, Get, Param, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Patch, Delete, Get, Param, Body, UseGuards, Req, Query, NotFoundException } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
+import { ElasticScheduleService } from './elastic-schedule/elastic-schedule.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Controller('api/appointments')
 export class AppointmentController {
-  constructor(private readonly appointmentService: AppointmentService) {}
+  constructor(
+    private readonly appointmentService: AppointmentService,
+    private readonly elasticScheduleService: ElasticScheduleService
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('elastic-schedule/:elasticScheduleId/overflow-with-priority')
@@ -66,5 +70,18 @@ export class AppointmentController {
       message: 'Overflow appointments redistribution completed',
       ...result
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('elastic-schedule/:elasticScheduleId/alternative-slots')
+  async getAlternativeSlots(
+    @Param('elasticScheduleId') elasticScheduleId: string,
+    @Query('date') date: string,
+    @Req() req
+  ) {
+    // Find the schedule by ID to get the doctor
+    const scheduleResult = await this.elasticScheduleService.getScheduleByIdOnly(elasticScheduleId);
+    
+    return this.elasticScheduleService.getAlternativeSlots(scheduleResult.schedule.doctor.id, date);
   }
 }

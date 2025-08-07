@@ -1,0 +1,217 @@
+@baseUrl = http://localhost:3000
+
+### SCHEDULA PROGRESSIVE FITTING DEMO - SMART SCHEDULE OPTIMIZATION
+### Dr. Alex Chen & Riley Thompson - Progressive Duration Algorithm (25→20→15→10 min)
+### Test Case: 6 appointments → Dynamic window fitting → Smart redistribution + fair treatment
+
+### STEP 1: Register Doctor
+# @name registerDoctor
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "dr.alexa.chen@smarthealth.clinic",
+  "password": "SmartSchedule2025!",
+  "name": "Dr. Alex Chen",
+  "specialization": "Internal Medicine",
+  "yearsExperience": 22
+}
+
+###
+
+### STEP 2: Register Patient
+# @name registerPatient
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "rileya.thompson@optimizehealth.pro",
+  "password": "OptimalCare2025!",
+  "name": "Riley Thompson",
+  "age": 29,
+  "gender": "other",
+  "phoneNumber": "+1555789456"
+}
+
+###
+
+### STEP 3: Login Doctor
+# @name loginDoctor
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "dr.alexa.chen@smarthealth.clinic",
+  "password": "SmartSchedule2025!"
+}
+
+###
+
+### STEP 4: Login Patient
+# @name loginPatient
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "rileya.thompson@optimizehealth.pro",
+  "password": "OptimalCare2025!"
+}
+
+###
+
+@doctorToken = {{loginDoctor.response.body.access_token}}
+@patientToken = {{loginPatient.response.body.access_token}}
+@doctorId = {{loginDoctor.response.body.entityId}}
+@patientId = {{loginPatient.response.body.entityId}}
+
+### STEP 5: Create Schedule Template
+# @name createSchedule
+POST {{baseUrl}}/api/doctors/{{doctorId}}/recurring-schedules
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "name": "Dr. Chen Smart Health Clinic",
+  "startTime": "08:00",
+  "endTime": "18:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 12,
+  "daysOfWeek": [1,2,3,4,5],
+  "weeksAhead": 2,
+  "allowOverrides": true,
+  "autoGenerate": true
+}
+
+###
+
+### STEP 6: Book Appointment 1
+# @name bookApp1
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createSchedule.response.body.id}}",
+  "date": "2025-08-07",
+  "startTime": "09:00",
+  "endTime": "09:30"
+}
+
+###
+
+### STEP 7: Book Appointment 2
+# @name bookApp2
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createSchedule.response.body.id}}",
+  "date": "2025-08-07",
+  "startTime": "10:00",
+  "endTime": "10:30"
+}
+
+###
+
+### STEP 8: Book Appointment 3
+# @name bookApp3
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createSchedule.response.body.id}}",
+  "date": "2025-08-07",
+  "startTime": "11:00",
+  "endTime": "11:30"
+}
+
+###
+
+### STEP 9: Book Appointment 4
+# @name bookApp4
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createSchedule.response.body.id}}",
+  "date": "2025-08-07",
+  "startTime": "12:00",
+  "endTime": "12:30"
+}
+
+###
+
+### STEP 10: Book Appointment 5
+# @name bookApp5
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createSchedule.response.body.id}}",
+  "date": "2025-08-07",
+  "startTime": "14:00",
+  "endTime": "14:30"
+}
+
+###
+
+### STEP 11: Book Appointment 6
+# @name bookApp6
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "recurringScheduleId": "{{createSchedule.response.body.id}}",
+  "date": "2025-08-07",
+  "startTime": "15:00",
+  "endTime": "15:30"
+}
+
+###
+
+### STEP 12: View All Appointments
+# @name viewAppointments
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+###
+
+### STEP 13: Shrink Schedule - Progressive Fitting Test
+### EXPECTED: 3-4 appointments fit within shrunk window, others redistributed
+### Progressive fitting: Try 25→20→15→10 minutes, fit as many as possible
+### TEST SCENARIO: 6 appointments → 2-hour window → Should fit 3-4 with 20-25min duration
+# @name shrinkSchedule
+POST {{baseUrl}}/api/doctors/{{doctorId}}/shrink-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-07",
+  "newStartTime": "10:00",
+  "newEndTime": "12:00",
+  "bufferTime": 5,
+  "maxAppointments": 6
+}
+
+###
+
+### STEP 14: Verify Perfect Fitting Results
+### VERIFY: All 6 appointments fitted with equal 15-minute duration
+# @name verifyPerfectFitting
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}?date=2025-08-07
+Authorization: Bearer {{doctorToken}}
+
+###
+
