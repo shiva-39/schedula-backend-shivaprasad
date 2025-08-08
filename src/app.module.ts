@@ -31,6 +31,7 @@ import { NotificationService } from './notification/notification.service';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
+      url: process.env.DATABASE_URL,
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USERNAME || 'postgres',
@@ -38,10 +39,11 @@ import { NotificationService } from './notification/notification.service';
       database: process.env.DB_NAME || 'schedula',
       autoLoadEntities: true,
       synchronize: false, // Use migrations only
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     }),
     TypeOrmModule.forFeature([User, Doctor, Patient, AvailabilitySlot, Appointment, ElasticScheduleEntity, RecurringScheduleEntity]),
     JwtModule.register({
-      secret: 'shortkey',
+      secret: process.env.JWT_SECRET || 'shortkey',
       signOptions: { expiresIn: '1h' },
     }),
   ],
