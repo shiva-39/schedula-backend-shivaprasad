@@ -1,0 +1,252 @@
+@baseUrl = https://schedula-backend-shivaprasad.onrender.com
+
+### WORKING SCHEDULA TEST - PROGRESSIVE FITTING ALGORITHM
+### Bypass schedule creation issues, focus on core functionality
+
+# Test credentials
+@doctorEmail = dr.sarah.martinez@testclinic.com
+@doctorPassword = TestDoc2025!
+@patientEmail = patient.jordan@testmail.com
+@patientPassword = TestPat2025!
+
+### STEP 1: Register Doctor
+# @name registerDoctor
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "{{doctorEmail}}",
+  "password": "{{doctorPassword}}",
+  "name": "Dr. Sarah Martinez",
+  "specialization": "Internal Medicine",
+  "yearsExperience": 15
+}
+
+###
+
+### STEP 2: Register Patient  
+# @name registerPatient
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "{{patientEmail}}",
+  "password": "{{patientPassword}}",
+  "name": "Jordan Patient",
+  "age": 30,
+  "gender": "other",
+  "phoneNumber": "+1555000001"
+}
+
+###
+
+### STEP 3: Login Doctor
+# @name loginDoctor
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{doctorEmail}}",
+  "password": "{{doctorPassword}}"
+}
+
+###
+
+### STEP 4: Login Patient
+# @name loginPatient
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{patientEmail}}",
+  "password": "{{patientPassword}}"
+}
+
+###
+
+@doctorToken = {{loginDoctor.response.body.access_token}}
+@patientToken = {{loginPatient.response.body.access_token}}
+@doctorId = {{loginDoctor.response.body.entityId}}
+@patientId = {{loginPatient.response.body.entityId}}
+
+### STEP 5: Test Basic Endpoints
+# @name getDoctor
+GET {{baseUrl}}/api/doctors/{{doctorId}}
+
+###
+
+### STEP 5A: Try Elastic Schedule Creation (No Role Guard)
+# @name createElasticSchedule
+POST {{baseUrl}}/api/doctors/{{doctorId}}/elastic-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "date": "2025-08-08",
+  "startTime": "08:00",
+  "endTime": "18:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 15,
+  "adjustExisting": false
+}
+
+###
+
+### STEP 5B: If elastic schedule fails, proceed with direct appointment booking
+
+### STEP 6: Create Appointment 1
+# @name appointment1
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "patientId": "{{patientId}}",
+  "date": "2025-08-08",
+  "startTime": "09:00",
+  "endTime": "09:30",
+  "appointmentType": "consultation"
+}
+
+###
+
+### STEP 7: Create Appointment 2
+# @name appointment2
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "patientId": "{{patientId}}",
+  "date": "2025-08-08",
+  "startTime": "10:00",
+  "endTime": "10:30",
+  "appointmentType": "consultation"
+}
+
+###
+
+### STEP 8: Create Appointment 3
+# @name appointment3
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "patientId": "{{patientId}}",
+  "date": "2025-08-08",
+  "startTime": "11:00",
+  "endTime": "11:30",
+  "appointmentType": "consultation"
+}
+
+###
+
+### STEP 9: Create Appointment 4
+# @name appointment4
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "patientId": "{{patientId}}",
+  "date": "2025-08-08",
+  "startTime": "12:00",
+  "endTime": "12:30",
+  "appointmentType": "consultation"
+}
+
+###
+
+### STEP 10: Create Appointment 5
+# @name appointment5
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "patientId": "{{patientId}}",
+  "date": "2025-08-08",
+  "startTime": "14:00",
+  "endTime": "14:30",
+  "appointmentType": "consultation"
+}
+
+###
+
+### STEP 11: Create Appointment 6
+# @name appointment6
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{doctorId}}",
+  "patientId": "{{patientId}}",
+  "date": "2025-08-08",
+  "startTime": "15:00",
+  "endTime": "15:30",
+  "appointmentType": "consultation"
+}
+
+###
+
+### STEP 12: View All Appointments Before Shrinking
+# @name viewAppointmentsBefore
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}
+Authorization: Bearer {{doctorToken}}
+
+###
+
+### STEP 13: TEST PROGRESSIVE FITTING ALGORITHM
+### This is the main test - shrink 6 appointments into 2-hour window
+### Expected: 25→20→15→10 min progression until all fit
+# @name progressiveFitting
+POST {{baseUrl}}/api/doctors/{{doctorId}}/shrink-schedule
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-08",
+  "newStartTime": "10:00", 
+  "newEndTime": "12:00",
+  "bufferTime": 5,
+  "maxAppointments": 6
+}
+
+###
+
+### STEP 14: Verify Progressive Fitting Results
+# @name viewAppointmentsAfter
+GET {{baseUrl}}/api/appointments/doctor/{{doctorId}}?date=2025-08-08
+Authorization: Bearer {{doctorToken}}
+
+###
+
+### ALTERNATIVE TESTS
+
+### Test Health Check
+# @name healthCheck
+GET {{baseUrl}}/hello
+
+###
+
+### Test Available Slots (if working)
+# @name availableSlots
+GET {{baseUrl}}/api/doctors/{{doctorId}}/available-slots?date=2025-08-08
+Authorization: Bearer {{doctorToken}}
+
+###
+
+### Test Get All Doctors
+# @name allDoctors
+GET {{baseUrl}}/api/doctors
+
+###

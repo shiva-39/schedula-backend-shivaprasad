@@ -1,0 +1,671 @@
+@baseUrl = https://schedula-backend-shivaprasad.onrender.com
+
+### SCHEDULA API ENDPOINTS - COMPLETE REFERENCE
+### Based on actual project controllers and routes
+
+# Variables for testing
+@doctorEmail = dr.test@example.com
+@doctorPassword = TestDoc123!
+@patientEmail = patient.test@example.com
+@patientPassword = TestPatient123!
+
+###
+### 1. AUTHENTICATION ENDPOINTS (/api/auth)
+###
+
+### Register Patient
+# @name registerPatient
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "{{patientEmail}}",
+  "password": "{{patientPassword}}",
+  "name": "Test Patient",
+  "age": 30,
+  "gender": "male",
+  "phoneNumber": "+1234567890"
+}
+
+###
+
+### Register Doctor
+# @name registerDoctor
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "{{doctorEmail}}",
+  "password": "{{doctorPassword}}",
+  "name": "Dr. Test Doctor",
+  "specialization": "General Medicine",
+  "yearsExperience": 10
+}
+
+###
+
+### Login (Doctor or Patient)
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{doctorEmail}}",
+  "password": "{{doctorPassword}}"
+}
+
+###
+
+### Logout
+# @name logout
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Profile
+# @name getProfile
+GET {{baseUrl}}/api/auth/profile
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+### 2. DOCTOR ENDPOINTS (/api/doctors)
+###
+
+### Get All Doctors
+# @name getAllDoctors
+GET {{baseUrl}}/api/doctors
+
+###
+
+### Get Doctor by ID
+# @name getDoctor
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}
+
+###
+
+### Update Doctor Profile
+# @name updateDoctor
+PATCH {{baseUrl}}/api/doctors/{{login.response.body.entityId}}
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "name": "Dr. Updated Name",
+  "specialization": "Updated Specialization"
+}
+
+###
+### 3. PATIENT ENDPOINTS (/api/patients)
+###
+
+### Get Patient by ID
+# @name getPatient
+GET {{baseUrl}}/api/patients/{{login.response.body.entityId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Update Patient Profile
+# @name updatePatient
+PATCH {{baseUrl}}/api/patients/{{login.response.body.entityId}}
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "name": "Updated Patient Name",
+  "age": 31
+}
+
+###
+### 4. AVAILABILITY SLOTS ENDPOINTS (/api/doctors/:id/slots)
+###
+
+### Get Doctor Availability Slots
+# @name getSlots
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/slots
+
+###
+
+### Add Availability Slot
+# @name addSlot
+POST {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/slots
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-08",
+  "startTime": "09:00",
+  "endTime": "17:00",
+  "slotDuration": 30
+}
+
+###
+
+### Delete Availability Slot
+# @name deleteSlot
+DELETE {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/slots/SLOT_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+### 5. ELASTIC SCHEDULE ENDPOINTS (/api/doctors/:id)
+###
+
+### Create Elastic Schedule (May fail due to service issue)
+# @name createElasticSchedule
+POST {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/elastic-schedule
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{login.response.body.entityId}}",
+  "date": "2025-08-08",
+  "startTime": "09:00",
+  "endTime": "17:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 10,
+  "adjustExisting": false
+}
+
+###
+
+### ALTERNATIVE: Skip Schedule Creation - Test Direct Appointment Booking
+# @name testDirectAppointment
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{login.response.body.entityId}}",
+  "patientId": "{{login.response.body.entityId}}",
+  "date": "2025-08-08",
+  "startTime": "10:00",
+  "endTime": "10:30",
+  "appointmentType": "consultation",
+  "notes": "Test appointment without schedule"
+}
+
+###
+
+### Get All Elastic Schedules for Doctor
+# @name getAllElasticSchedules
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/elastic-schedule
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Specific Elastic Schedule
+# @name getElasticSchedule
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/elastic-schedule/SCHEDULE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Update Elastic Schedule
+# @name updateElasticSchedule
+PATCH {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/elastic-schedule/SCHEDULE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "startTime": "08:00",
+  "endTime": "18:00"
+}
+
+###
+
+### Delete Elastic Schedule
+# @name deleteElasticSchedule
+DELETE {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/elastic-schedule/SCHEDULE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Elastic Slots
+# @name getElasticSlots
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/elastic-slots?date=2025-08-08
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Available Slots
+# @name getAvailableSlots
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/available-slots?date=2025-08-08
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Reschedule Appointments
+# @name rescheduleAppointments
+POST {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/reschedule-appointments
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-08",
+  "newStartTime": "10:00",
+  "newEndTime": "16:00"
+}
+
+###
+
+### Shrink Schedule (Progressive Fitting Algorithm)
+# @name shrinkSchedule
+POST {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/shrink-schedule
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-08",
+  "newStartTime": "10:00",
+  "newEndTime": "14:00",
+  "bufferTime": 5,
+  "maxAppointments": 8
+}
+
+###
+### 6. RECURRING SCHEDULE ENDPOINTS (/api/doctors/:doctorId/recurring-schedules)
+###
+
+### Create Recurring Schedule Template
+# @name createRecurringSchedule
+POST {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "name": "Weekly Schedule",
+  "startTime": "09:00",
+  "endTime": "17:00",
+  "slotDuration": 30,
+  "bufferTime": 5,
+  "maxAppointments": 12,
+  "daysOfWeek": [1, 2, 3, 4, 5],
+  "weeksAhead": 4,
+  "allowOverrides": true,
+  "autoGenerate": true
+}
+
+###
+
+### Get All Recurring Schedules
+# @name getRecurringSchedules
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Specific Recurring Schedule
+# @name getRecurringSchedule
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Update Recurring Schedule
+# @name updateRecurringSchedule
+PATCH {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "name": "Updated Schedule",
+  "startTime": "08:00",
+  "endTime": "18:00"
+}
+
+###
+
+### Delete Recurring Schedule
+# @name deleteRecurringSchedule
+DELETE {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Generate Schedules from Template
+# @name generateSchedules
+POST {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID/generate
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "startDate": "2025-08-08",
+  "endDate": "2025-09-08"
+}
+
+###
+
+### Create Date Override
+# @name createDateOverride
+POST {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID/date-overrides
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-15",
+  "startTime": "10:00",
+  "endTime": "15:00",
+  "isAvailable": true
+}
+
+###
+
+### Get Date Overrides
+# @name getDateOverrides
+GET {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID/date-overrides
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Update Date Override
+# @name updateDateOverride
+PATCH {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID/date-overrides/OVERRIDE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "startTime": "11:00",
+  "endTime": "16:00"
+}
+
+###
+
+### Delete Date Override
+# @name deleteDateOverride
+DELETE {{baseUrl}}/api/doctors/{{login.response.body.entityId}}/recurring-schedules/SCHEDULE_ID/date-overrides/OVERRIDE_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+### 7. APPOINTMENT ENDPOINTS (/api/appointments)
+###
+
+### Create Appointment
+# @name createAppointment
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "doctorId": "DOCTOR_ID",
+  "patientId": "PATIENT_ID",
+  "date": "2025-08-08",
+  "startTime": "10:00",
+  "endTime": "10:30",
+  "appointmentType": "consultation",
+  "notes": "Regular checkup"
+}
+
+###
+
+### Reschedule Appointment
+# @name rescheduleAppointment
+PATCH {{baseUrl}}/api/appointments/APPOINTMENT_ID/reschedule
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "newDate": "2025-08-09",
+  "newStartTime": "11:00",
+  "newEndTime": "11:30"
+}
+
+###
+
+### Cancel Appointment
+# @name cancelAppointment
+DELETE {{baseUrl}}/api/appointments/APPOINTMENT_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Patient Appointments
+# @name getPatientAppointments
+GET {{baseUrl}}/api/appointments/patient/PATIENT_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Doctor Appointments
+# @name getDoctorAppointments
+GET {{baseUrl}}/api/appointments/doctor/DOCTOR_ID
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Elastic Schedule Overflow (with Priority)
+# @name getElasticScheduleOverflowWithPriority
+GET {{baseUrl}}/api/appointments/elastic-schedule/ELASTIC_SCHEDULE_ID/overflow-with-priority
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Get Elastic Schedule Overflow
+# @name getElasticScheduleOverflow
+GET {{baseUrl}}/api/appointments/elastic-schedule/ELASTIC_SCHEDULE_ID/overflow
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+
+### Redistribute Overflow Appointments
+# @name redistributeOverflow
+POST {{baseUrl}}/api/appointments/elastic-schedule/ELASTIC_SCHEDULE_ID/redistribute-overflow
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{
+  "redistributionStrategy": "automatic"
+}
+
+###
+
+### Get Alternative Slots
+# @name getAlternativeSlots
+GET {{baseUrl}}/api/appointments/elastic-schedule/ELASTIC_SCHEDULE_ID/alternative-slots?date=2025-08-08
+Authorization: Bearer {{login.response.body.access_token}}
+
+###
+### 8. APPLICATION STATUS ENDPOINTS
+###
+
+### Health Check
+# @name healthCheck
+GET {{baseUrl}}/hello
+
+###
+
+### Root Endpoint
+# @name root
+GET {{baseUrl}}/
+
+###
+### 9. PROGRESSIVE FITTING ALGORITHM TEST WORKFLOW
+###
+
+# Variables for demo
+@demoDocEmail = dr.sarah.martinez@modernhealth.clinic
+@demoDocPassword = SecureDoc2025!
+@demoPatEmail = jordan.kim@wellnessconnect.health
+@demoPatPassword = PatientSecure456!
+
+### Demo: Register Doctor
+# @name demoRegisterDoctor
+POST {{baseUrl}}/api/auth/doctor/register
+Content-Type: application/json
+
+{
+  "email": "{{demoDocEmail}}",
+  "password": "{{demoDocPassword}}",
+  "name": "Dr. Sarah Martinez",
+  "specialization": "Internal Medicine",
+  "yearsExperience": 22
+}
+
+###
+
+### Demo: Register Patient
+# @name demoRegisterPatient
+POST {{baseUrl}}/api/auth/patient/register
+Content-Type: application/json
+
+{
+  "email": "{{demoPatEmail}}",
+  "password": "{{demoPatPassword}}",
+  "name": "Jordan Kim",
+  "age": 29,
+  "gender": "other",
+  "phoneNumber": "+1555123789"
+}
+
+###
+
+### Demo: Login Doctor
+# @name demoLoginDoctor
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{demoDocEmail}}",
+  "password": "{{demoDocPassword}}"
+}
+
+###
+
+### Demo: Login Patient
+# @name demoLoginPatient
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{demoPatEmail}}",
+  "password": "{{demoPatPassword}}"
+}
+
+@demoDoctorToken = {{demoLoginDoctor.response.body.access_token}}
+@demoPatientToken = {{demoLoginPatient.response.body.access_token}}
+@demoDoctorId = {{demoLoginDoctor.response.body.entityId}}
+@demoPatientId = {{demoLoginPatient.response.body.entityId}}
+
+###
+
+### Demo: Create Appointment 1
+# @name demoApp1
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{demoPatientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{demoDoctorId}}",
+  "date": "2025-08-08",
+  "startTime": "09:00",
+  "endTime": "09:30"
+}
+
+###
+
+### Demo: Create Appointment 2
+# @name demoApp2
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{demoPatientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{demoDoctorId}}",
+  "date": "2025-08-08",
+  "startTime": "10:00",
+  "endTime": "10:30"
+}
+
+###
+
+### Demo: Create Appointment 3
+# @name demoApp3
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{demoPatientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{demoDoctorId}}",
+  "date": "2025-08-08",
+  "startTime": "11:00",
+  "endTime": "11:30"
+}
+
+###
+
+### Demo: Create Appointment 4
+# @name demoApp4
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{demoPatientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{demoDoctorId}}",
+  "date": "2025-08-08",
+  "startTime": "12:00",
+  "endTime": "12:30"
+}
+
+###
+
+### Demo: Create Appointment 5
+# @name demoApp5
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{demoPatientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{demoDoctorId}}",
+  "date": "2025-08-08",
+  "startTime": "14:00",
+  "endTime": "14:30"
+}
+
+###
+
+### Demo: Create Appointment 6
+# @name demoApp6
+POST {{baseUrl}}/api/appointments
+Authorization: Bearer {{demoPatientToken}}
+Content-Type: application/json
+
+{
+  "doctorId": "{{demoDoctorId}}",
+  "date": "2025-08-08",
+  "startTime": "15:00",
+  "endTime": "15:30"
+}
+
+###
+
+### Demo: View All Appointments Before Shrinking
+# @name demoViewAppointmentsBefore
+GET {{baseUrl}}/api/appointments/doctor/{{demoDoctorId}}
+Authorization: Bearer {{demoDoctorToken}}
+
+###
+
+### Demo: Progressive Fitting Algorithm - Shrink Schedule
+### This will apply the 25→20→15→10 minute progressive fitting algorithm
+# @name demoProgressiveFitting
+POST {{baseUrl}}/api/doctors/{{demoDoctorId}}/shrink-schedule
+Authorization: Bearer {{demoDoctorToken}}
+Content-Type: application/json
+
+{
+  "date": "2025-08-08",
+  "newStartTime": "10:00",
+  "newEndTime": "12:00",
+  "bufferTime": 5,
+  "maxAppointments": 6
+}
+
+###
+
+### Demo: View All Appointments After Progressive Fitting
+# @name demoViewAppointmentsAfter
+GET {{baseUrl}}/api/appointments/doctor/{{demoDoctorId}}?date=2025-08-08
+Authorization: Bearer {{demoDoctorToken}}
+
+###
