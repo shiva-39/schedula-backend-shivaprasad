@@ -38,7 +38,7 @@ import { NotificationService } from './notification/notification.service';
       password: process.env.DB_PASSWORD || '123456',
       database: process.env.DB_NAME || 'schedula',
       autoLoadEntities: true,
-      synchronize: false, // Use migrations only
+      synchronize: true, // Auto-sync enabled for free tier simplicity
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     }),
     TypeOrmModule.forFeature([User, Doctor, Patient, AvailabilitySlot, Appointment, ElasticScheduleEntity, RecurringScheduleEntity]),
